@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     minHeight: 280,
     borderWidth: 1.5,
-    borderColor: Colors.secondary[300],
+    borderColor: Colors.secondary[500],
     ...Shadows.medium,
   },
   title: {
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontFamily: Fonts.secondary.regular,
-    color: Colors.secondary[400],
+    color: Colors.secondary[500],
     textAlign: "center",
     opacity: 0.8,
   },

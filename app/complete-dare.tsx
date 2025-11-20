@@ -110,7 +110,7 @@ export default function CompleteDare() {
   if (isCompleted) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <View style={styles.container}>
+        <View style={styles.congratsContainer}>
           <TouchableOpacity
             style={styles.homeButton}
             onPress={handleGoHome}
@@ -236,6 +236,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  congratsContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   backButton: {
     position: "absolute",
     top: 20,
@@ -269,8 +275,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.primary[500],
     padding: 24,
-    marginTop: 60,
-    marginBottom: 30,
+    marginTop: 100,
+    marginBottom: 50,
   },
   dareTitle: {
     fontSize: 24,
@@ -291,7 +297,7 @@ const styles = StyleSheet.create({
     ...Shadows.small,
   },
   photoButton: {
-    backgroundColor: Colors.secondary[400],
+    backgroundColor: Colors.secondary[500],
     paddingVertical: 32,
     paddingHorizontal: 48,
     borderRadius: BorderRadius.xl,
@@ -324,7 +330,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   completeButton: {
-    backgroundColor: Colors.secondary[300],
+    backgroundColor: Colors.secondary[500],
     paddingVertical: 16,
     paddingHorizontal: 48,
     borderRadius: BorderRadius.xl,
@@ -339,7 +345,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
     borderRadius: BorderRadius.xl,
     borderWidth: 2,
-    borderColor: Colors.secondary[400],
+    borderColor: Colors.secondary[500],
     width: "80%",
     alignItems: "center",
   },
@@ -354,10 +360,12 @@ const styles = StyleSheet.create({
     color: Colors.secondary[500],
   },
   congratsCard: {
-    backgroundColor: Colors.secondary[300],
+    backgroundColor: Colors.secondary[500],
     borderRadius: BorderRadius.xxl,
     padding: 32,
-    marginTop: 80,
+    width: "90%",
+    maxWidth: 400,
+    marginBottom: 80,
     alignItems: "center",
     ...Shadows.large,
   },

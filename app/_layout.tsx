@@ -39,23 +39,11 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerStyle: {
-            backgroundColor: "#E8DDD3",
-          },
-          headerTintColor: "#6B7BB8",
-          headerTitleStyle: {
-            fontFamily: "PoorStory_400Regular",
-            fontSize: 24,
-          },
+          headerShown: false,
         }}
       >
-        <Stack.Screen
-          name="index"
-          options={{
-            title: "DareDrop",
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="complete-dare" />
       </Stack>
     </DareProvider>
   );

@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.yellow,
     width: CARD_WIDTH,
     minHeight: CARD_HEIGHT,
-    top: ENVELOPE_HEIGHT * 0.45,
+    top: ENVELOPE_HEIGHT * 0.38,
     borderRadius: BorderRadius.lg,
     borderWidth: 1.5,
     borderColor: Colors.primary[500],
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   completedBadgeText: {
     fontSize: 14,
     fontFamily: Fonts.secondary.medium,
-    color: Colors.secondary[400],
+    color: Colors.secondary[500],
     fontStyle: "italic",
   },
   completeButton: {
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     ...Shadows.medium,
   },
   viewDareButton: {
-    backgroundColor: Colors.secondary[400],
+    backgroundColor: Colors.secondary[500],
   },
   completeButtonText: {
     fontSize: 16,
