@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "DareDrop",
+    "slug": "daredrop-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ef4444"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.daredrop.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "DareDrop needs access to your camera to capture your creative dare completions!",
+        "NSPhotoLibraryUsageDescription": "DareDrop needs access to your photo library to let you choose photos for your dare completions!"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ef4444"
+      },
+      "package": "com.daredrop.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "daredrop",
+    "plugins": ["expo-router"]
+  }
+}
