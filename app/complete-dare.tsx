@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   ScrollView,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -21,12 +22,15 @@ export default function CompleteDare() {
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
 
-  const { markDareComplete } = useDare();
+  const { markDareComplete, deleteDare } = useDare();
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
   );
   const [isCompleted, setIsCompleted] = useState(alreadyCompleted);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
@@ -107,6 +111,30 @@ export default function CompleteDare() {
     router.back();
   };
 
+  const handleEditDare = () => {
+    setShowEditModal(false);
+    setIsCompleted(false);
+    // Keep the image so user can see it and decide to retake or keep it
+  };
+
+  const handleDeleteDare = () => {
+    setShowEditModal(false);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleConfirmDeletion = () => {
+    deleteDare(dare);
+    setSelectedImage(null);
+    setIsCompleted(false);
+    setShowDeleteConfirmation(false);
+    setShowDeleteSuccess(true);
+    
+    // Navigate home after 1.5 seconds
+    setTimeout(() => {
+      router.back();
+    }, 1500);
+  };
+
   if (isCompleted) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -126,8 +154,97 @@ export default function CompleteDare() {
             </Text>
 
             {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={styles.thumbnail} />
+              <View style={styles.thumbnailContainer}>
+                <Image source={{ uri: selectedImage }} style={styles.thumbnail} />
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Text style={styles.pencilIcon}>✏️</Text>
+                </TouchableOpacity>
+              </View>
             )}
+
+            {/* Edit Modal */}
+            <Modal
+              visible={showEditModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowEditModal(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowEditModal(false)}
+              >
+                <View style={styles.modalContent}>
+                  <TouchableOpacity
+                    style={styles.modalOption}
+                    onPress={handleEditDare}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.modalOptionText}>Edit dare</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalOption, styles.modalOptionDelete]}
+                    onPress={handleDeleteDare}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.modalOptionText, styles.modalOptionTextDelete]}>
+                      Delete dare
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+              visible={showDeleteConfirmation}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowDeleteConfirmation(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowDeleteConfirmation(false)}
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.confirmationTitle}>Delete this dare?</Text>
+                  <TouchableOpacity
+                    style={styles.modalOption}
+                    onPress={handleConfirmDeletion}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.modalOptionText}>Confirm deletion</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalOption, styles.modalOptionCancel]}
+                    onPress={() => setShowDeleteConfirmation(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.modalOptionText, styles.modalOptionTextCancel]}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+
+            {/* Delete Success Modal */}
+            <Modal
+              visible={showDeleteSuccess}
+              transparent={true}
+              animationType="fade"
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.successTitle}>Dare successfully deleted</Text>
+                </View>
+              </View>
+            </Modal>
 
             <View style={styles.sparkNote}>
               <Text style={styles.sparkNoteText}>
@@ -383,13 +500,33 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 24,
   },
+  thumbnailContainer: {
+    position: "relative",
+    marginBottom: 20,
+  },
   thumbnail: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
     borderColor: Colors.white,
-    marginBottom: 20,
+  },
+  pencilButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.accent.yellow,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.white,
+    ...Shadows.small,
+  },
+  pencilIcon: {
+    fontSize: 16,
   },
   sparkNote: {
     backgroundColor: Colors.accent.yellow,
@@ -403,5 +540,63 @@ const styles = StyleSheet.create({
     color: Colors.primary[500],
     textAlign: "center",
     lineHeight: 22,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.xl,
+    padding: 20,
+    width: "80%",
+    maxWidth: 300,
+    ...Shadows.large,
+  },
+  modalOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary[500],
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  modalOptionDelete: {
+    backgroundColor: "transparent",
+    borderWidth: 2,
+    borderColor: Colors.secondary[500],
+    marginBottom: 0,
+  },
+  modalOptionText: {
+    fontSize: 18,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.white,
+  },
+  modalOptionTextDelete: {
+    color: Colors.secondary[500],
+  },
+  modalOptionCancel: {
+    backgroundColor: "transparent",
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    marginBottom: 0,
+  },
+  modalOptionTextCancel: {
+    color: Colors.primary[500],
+  },
+  confirmationTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.bold,
+    color: Colors.primary[500],
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.bold,
+    color: Colors.primary[500],
+    textAlign: "center",
   },
 });

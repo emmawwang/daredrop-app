@@ -5,6 +5,7 @@ interface DareContextType {
   markDareComplete: (dare: string, imageUri?: string) => void;
   isDareCompleted: (dare: string) => boolean;
   getDareImage: (dare: string) => string | undefined;
+  deleteDare: (dare: string) => void;
 }
 
 const DareContext = createContext<DareContextType | undefined>(undefined);
@@ -29,6 +30,14 @@ export function DareProvider({ children }: { children: ReactNode }) {
     return completedDares[dare]?.imageUri;
   };
 
+  const deleteDare = (dare: string) => {
+    setCompletedDares((prev) => {
+      const newDares = { ...prev };
+      delete newDares[dare];
+      return newDares;
+    });
+  };
+
   return (
     <DareContext.Provider
       value={{
@@ -36,6 +45,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
         markDareComplete,
         isDareCompleted,
         getDareImage,
+        deleteDare,
       }}
     >
       {children}
