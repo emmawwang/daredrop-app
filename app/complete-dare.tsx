@@ -250,11 +250,17 @@ export default function CompleteDare() {
               </View>
             </Modal>
 
-            <View style={styles.sparkNote}>
-              <Text style={styles.sparkNoteText}>
-                COMING SOON: See your past{"\n"}creative sparks!
+            <TouchableOpacity style={styles.shareButton} activeOpacity={0.7}>
+              <Text style={styles.shareButtonText}>
+                Share your Dare! {"\n"} [coming soon]
               </Text>
-            </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sparkNote} activeOpacity={0.7}>
+              <Text style={styles.sparkNoteText}>
+                See your past creative sparks! {"\n"} [coming soon]
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
@@ -539,6 +545,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   sparkNoteText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.medium,
+    color: Colors.primary[500],
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  shareButton: {
+    backgroundColor: Colors.accent.yellow,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: BorderRadius.lg,
+    marginBottom: 12,
+  },
+  shareButtonText: {
     fontSize: 16,
     fontFamily: Fonts.secondary.medium,
     color: Colors.primary[500],
