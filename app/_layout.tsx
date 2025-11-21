@@ -44,6 +44,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="complete-dare" />
+        <Stack.Screen name="your-dares" />
       </Stack>
     </DareProvider>
   );

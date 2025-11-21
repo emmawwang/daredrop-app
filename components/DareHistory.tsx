@@ -27,13 +27,14 @@ interface DareHistoryItem {
 interface DareHistoryProps {
   dares?: DareHistoryItem[];
   highlightedDareId?: string | null;
+  fullScreen?: boolean;
 }
 
-export default function DareHistory({ dares = [], highlightedDareId = null }: DareHistoryProps) {
+export default function DareHistory({ dares = [], highlightedDareId = null, fullScreen = false }: DareHistoryProps) {
   const isEmpty = dares.length === 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, fullScreen && styles.fullScreenContainer]}>
       <Text style={styles.title}>Your Dares</Text>
 
       {isEmpty ? (
@@ -175,6 +176,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.secondary[500],
     ...Shadows.medium,
     flexDirection: "column",
+  },
+  fullScreenContainer: {
+    width: "100%",
+    maxWidth: "100%",
+    marginTop: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    flex: 1,
   },
   title: {
     fontSize: 36,
