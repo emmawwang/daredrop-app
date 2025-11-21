@@ -22,7 +22,7 @@ export default function CompleteDare() {
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
 
-  const { markDareComplete, deleteDare } = useDare();
+  const { markDareComplete, deleteDare, setHighlightedDare } = useDare();
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
@@ -108,6 +108,10 @@ export default function CompleteDare() {
   };
 
   const handleGoHome = () => {
+    // If dare is completed, highlight it when navigating home
+    if (isCompleted && dare) {
+      setHighlightedDare(dare);
+    }
     router.back();
   };
 

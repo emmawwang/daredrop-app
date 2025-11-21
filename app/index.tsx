@@ -28,7 +28,7 @@ export default function Home() {
   });
 
   const userName = "Adi"; // This will come from user profile
-  const { completedDares, streakDays } = useDare();
+  const { completedDares, streakDays, highlightedDareId } = useDare();
 
   // Convert completedDares object to array format for DareHistory
   const completedDaresList = useMemo(() => {
@@ -65,7 +65,7 @@ export default function Home() {
           </View>
 
           {/* Dare History Section */}
-          <DareHistory dares={completedDaresList} />
+          <DareHistory dares={completedDaresList} highlightedDareId={highlightedDareId} />
         </View>
       </ScrollView>
     </SafeAreaView>
