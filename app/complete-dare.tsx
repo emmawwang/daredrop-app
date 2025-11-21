@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
+import { Pencil, House } from "lucide-react-native";
 
 export default function CompleteDare() {
   const router = useRouter();
@@ -148,7 +149,7 @@ export default function CompleteDare() {
             onPress={handleGoHome}
             activeOpacity={0.7}
           >
-            <Text style={styles.homeIcon}>🏠</Text>
+            <House color={Colors.primary[500]} size={28} />
           </TouchableOpacity>
 
           <View style={styles.congratsCard}>
@@ -165,7 +166,7 @@ export default function CompleteDare() {
                   activeOpacity={0.7}
                   onPress={() => setShowEditModal(true)}
                 >
-                  <Text style={styles.pencilIcon}>✏️</Text>
+                  <Pencil color={Colors.primary[500]} size={16} />
                 </TouchableOpacity>
               </View>
             )}
@@ -286,7 +287,7 @@ export default function CompleteDare() {
             onPress={handleGoHome}
             activeOpacity={0.7}
           >
-            <Text style={styles.homeIcon}>🏠</Text>
+            <House color={Colors.primary[500]} size={28} />
           </TouchableOpacity>
 
           {/* Dare Card */}
