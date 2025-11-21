@@ -41,26 +41,28 @@ export default function DareHistory({ dares = [] }: DareHistoryProps) {
           </Text>
         </View>
       ) : (
-        <View style={styles.daresGrid}>
-          {dares.map((dare, index) => (
-            <View key={dare.id} style={styles.dareCircle}>
-              <View
-                style={[
-                  styles.dareCircleInner,
-                  { backgroundColor: getPlaceholderColor(index) },
-                ]}
-              >
-                {dare.image ? (
-                  <Image
-                    source={{ uri: dare.image }}
-                    style={styles.dareImage}
-                  />
-                ) : (
-                  <Text style={styles.darePlaceholder}>📸</Text>
-                )}
+        <View style={styles.gridContainer}>
+          <View style={styles.daresGrid}>
+            {dares.map((dare, index) => (
+              <View key={dare.id} style={styles.dareCircle}>
+                <View
+                  style={[
+                    styles.dareCircleInner,
+                    { backgroundColor: getPlaceholderColor(index) },
+                  ]}
+                >
+                  {dare.image ? (
+                    <Image
+                      source={{ uri: dare.image }}
+                      style={styles.dareImage}
+                    />
+                  ) : (
+                    <Text style={styles.darePlaceholder}>📸</Text>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
       )}
     </View>
@@ -92,6 +94,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.secondary[500],
     ...Shadows.medium,
+    flexDirection: "column",
   },
   title: {
     fontSize: 36,
@@ -111,6 +114,10 @@ const styles = StyleSheet.create({
     color: Colors.secondary[500],
     textAlign: "center",
     opacity: 0.8,
+  },
+  gridContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
   daresGrid: {
     flexDirection: "row",

@@ -1,10 +1,11 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import EnvelopeAnimation from "@/components/EnvelopeAnimation";
 import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
 import { Colors, FontSizes, Fonts } from "@/constants/theme";
+import { useDare } from "@/contexts/DareContext";
 
 // Sample dares - these will later be fetched from an API or database
 const sampleDares = [
@@ -26,8 +27,19 @@ export default function Home() {
     return sampleDares[Math.floor(Math.random() * sampleDares.length)];
   });
 
-  const [streakDays] = useState(32); // This will be fetched from user data
   const userName = "Adi"; // This will come from user profile
+  const { completedDares, streakDays } = useDare();
+
+  // Convert completedDares object to array format for DareHistory
+  const completedDaresList = useMemo(() => {
+    return Object.entries(completedDares)
+      .filter(([_, data]) => data.completed)
+      .map(([dare, data]) => ({
+        id: dare,
+        image: data.imageUri,
+        completed: data.completed,
+      }));
+  }, [completedDares]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -53,7 +65,7 @@ export default function Home() {
           </View>
 
           {/* Dare History Section */}
-          <DareHistory />
+          <DareHistory dares={completedDaresList} />
         </View>
       </ScrollView>
     </SafeAreaView>
