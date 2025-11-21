@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   Dimensions,
+  Animated,
 } from "react-native";
 import {
   Colors,
@@ -25,13 +26,15 @@ interface DareHistoryItem {
 
 interface DareHistoryProps {
   dares?: DareHistoryItem[];
+  highlightedDareId?: string | null;
+  fullScreen?: boolean;
 }
 
-export default function DareHistory({ dares = [] }: DareHistoryProps) {
+export default function DareHistory({ dares = [], highlightedDareId = null, fullScreen = false }: DareHistoryProps) {
   const isEmpty = dares.length === 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, fullScreen && styles.fullScreenContainer]}>
       <Text style={styles.title}>Your Dares</Text>
 
       {isEmpty ? (
@@ -44,23 +47,12 @@ export default function DareHistory({ dares = [] }: DareHistoryProps) {
         <View style={styles.gridContainer}>
           <View style={styles.daresGrid}>
             {dares.map((dare, index) => (
-              <View key={dare.id} style={styles.dareCircle}>
-                <View
-                  style={[
-                    styles.dareCircleInner,
-                    { backgroundColor: getPlaceholderColor(index) },
-                  ]}
-                >
-                  {dare.image ? (
-                    <Image
-                      source={{ uri: dare.image }}
-                      style={styles.dareImage}
-                    />
-                  ) : (
-                    <Text style={styles.darePlaceholder}>📸</Text>
-                  )}
-                </View>
-              </View>
+              <DareCircle
+                key={dare.id}
+                dare={dare}
+                index={index}
+                isHighlighted={highlightedDareId === dare.id}
+              />
             ))}
           </View>
         </View>
@@ -82,6 +74,95 @@ function getPlaceholderColor(index: number): string {
   return colors[index % colors.length];
 }
 
+// Individual dare circle component with highlighting animation
+function DareCircle({
+  dare,
+  index,
+  isHighlighted,
+}: {
+  dare: DareHistoryItem;
+  index: number;
+  isHighlighted: boolean;
+}) {
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const borderAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (isHighlighted) {
+      // Reset animations
+      scaleAnim.setValue(1);
+      borderAnim.setValue(0);
+      
+      // Start highlight animation
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.2,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(borderAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: false,
+          }),
+          Animated.delay(1200),
+          Animated.timing(borderAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: false,
+          }),
+        ]),
+      ]).start();
+    }
+  }, [isHighlighted]);
+
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [Colors.accent.yellow, Colors.accent.yellow],
+  });
+
+  const borderWidth = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 4],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.dareCircle,
+        {
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.dareCircleInner,
+          {
+            backgroundColor: getPlaceholderColor(index),
+            borderColor: borderColor,
+            borderWidth: borderWidth,
+          },
+        ]}
+      >
+        {dare.image ? (
+          <Image source={{ uri: dare.image }} style={styles.dareImage} />
+        ) : (
+          <Text style={styles.darePlaceholder}>📸</Text>
+        )}
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.accent.green,
@@ -95,6 +176,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.secondary[500],
     ...Shadows.medium,
     flexDirection: "column",
+  },
+  fullScreenContainer: {
+    width: "100%",
+    maxWidth: "100%",
+    marginTop: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    flex: 1,
   },
   title: {
     fontSize: 36,

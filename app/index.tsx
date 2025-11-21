@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useMemo } from "react";
+import { useRouter } from "expo-router";
 import EnvelopeAnimation from "@/components/EnvelopeAnimation";
 import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
@@ -22,13 +23,14 @@ const sampleDares = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   // For now, pick a random dare. Later this will be daily-based
   const [currentDare] = useState(() => {
     return sampleDares[Math.floor(Math.random() * sampleDares.length)];
   });
 
   const userName = "Adi"; // This will come from user profile
-  const { completedDares, streakDays } = useDare();
+  const { completedDares, streakDays, highlightedDareId } = useDare();
 
   // Convert completedDares object to array format for DareHistory
   const completedDaresList = useMemo(() => {
@@ -65,7 +67,12 @@ export default function Home() {
           </View>
 
           {/* Dare History Section */}
-          <DareHistory dares={completedDaresList} />
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => router.push("/your-dares")}
+          >
+            <DareHistory dares={completedDaresList} highlightedDareId={highlightedDareId} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

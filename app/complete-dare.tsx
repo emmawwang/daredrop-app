@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
+import { Pencil, House } from "lucide-react-native";
 
 export default function CompleteDare() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function CompleteDare() {
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
 
-  const { markDareComplete, deleteDare } = useDare();
+  const { markDareComplete, deleteDare, setHighlightedDare } = useDare();
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
@@ -108,6 +109,10 @@ export default function CompleteDare() {
   };
 
   const handleGoHome = () => {
+    // If dare is completed, highlight it when navigating home
+    if (isCompleted && dare) {
+      setHighlightedDare(dare);
+    }
     router.back();
   };
 
@@ -144,7 +149,7 @@ export default function CompleteDare() {
             onPress={handleGoHome}
             activeOpacity={0.7}
           >
-            <Text style={styles.homeIcon}>🏠</Text>
+            <House color={Colors.primary[500]} size={28} />
           </TouchableOpacity>
 
           <View style={styles.congratsCard}>
@@ -161,7 +166,7 @@ export default function CompleteDare() {
                   activeOpacity={0.7}
                   onPress={() => setShowEditModal(true)}
                 >
-                  <Text style={styles.pencilIcon}>✏️</Text>
+                  <Pencil color={Colors.primary[500]} size={16} />
                 </TouchableOpacity>
               </View>
             )}
@@ -246,11 +251,17 @@ export default function CompleteDare() {
               </View>
             </Modal>
 
-            <View style={styles.sparkNote}>
-              <Text style={styles.sparkNoteText}>
-                COMING SOON: See your past{"\n"}creative sparks!
+            <TouchableOpacity style={styles.shareButton} activeOpacity={0.7}>
+              <Text style={styles.shareButtonText}>
+                Share your Dare! {"\n"} [coming soon]
               </Text>
-            </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sparkNote} activeOpacity={0.7}>
+              <Text style={styles.sparkNoteText}>
+                See your past creative sparks! {"\n"} [coming soon]
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
@@ -276,7 +287,7 @@ export default function CompleteDare() {
             onPress={handleGoHome}
             activeOpacity={0.7}
           >
-            <Text style={styles.homeIcon}>🏠</Text>
+            <House color={Colors.primary[500]} size={28} />
           </TouchableOpacity>
 
           {/* Dare Card */}
@@ -535,6 +546,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   sparkNoteText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.medium,
+    color: Colors.primary[500],
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  shareButton: {
+    backgroundColor: Colors.accent.yellow,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: BorderRadius.lg,
+    marginBottom: 12,
+  },
+  shareButtonText: {
     fontSize: 16,
     fontFamily: Fonts.secondary.medium,
     color: Colors.primary[500],

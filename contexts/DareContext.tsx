@@ -3,10 +3,12 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 interface DareContextType {
   completedDares: Record<string, { completed: boolean; imageUri?: string }>;
   streakDays: number;
+  highlightedDareId: string | null;
   markDareComplete: (dare: string, imageUri?: string) => void;
   isDareCompleted: (dare: string) => boolean;
   getDareImage: (dare: string) => string | undefined;
   deleteDare: (dare: string) => void;
+  setHighlightedDare: (dare: string) => void;
 }
 
 const DareContext = createContext<DareContextType | undefined>(undefined);
@@ -16,6 +18,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
     Record<string, { completed: boolean; imageUri?: string }>
   >({});
   const [streakDays, setStreakDays] = useState(0); // Initial streak value
+  const [highlightedDareId, setHighlightedDareId] = useState<string | null>(null);
 
   const markDareComplete = (dare: string, imageUri?: string) => {
     setCompletedDares((prev) => {
@@ -29,6 +32,13 @@ export function DareProvider({ children }: { children: ReactNode }) {
         [dare]: { completed: true, imageUri },
       };
     });
+  };
+
+  const setHighlightedDare = (dare: string) => {
+    setHighlightedDareId(dare);
+    setTimeout(() => {
+      setHighlightedDareId(null);
+    }, 1500);
   };
 
   const isDareCompleted = (dare: string) => {
@@ -57,10 +67,12 @@ export function DareProvider({ children }: { children: ReactNode }) {
       value={{
         completedDares,
         streakDays,
+        highlightedDareId,
         markDareComplete,
         isDareCompleted,
         getDareImage,
         deleteDare,
+        setHighlightedDare,
       }}
     >
       {children}
