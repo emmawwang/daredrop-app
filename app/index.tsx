@@ -1,4 +1,10 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useMemo } from "react";
 import { useRouter } from "expo-router";
@@ -7,6 +13,7 @@ import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
 import { Colors, FontSizes, Fonts } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Sample dares - these will later be fetched from an API or database
 const sampleDares = [
@@ -24,12 +31,13 @@ const sampleDares = [
 
 export default function Home() {
   const router = useRouter();
+  const { profile } = useAuth();
   // For now, pick a random dare. Later this will be daily-based
   const [currentDare] = useState(() => {
     return sampleDares[Math.floor(Math.random() * sampleDares.length)];
   });
 
-  const userName = "Adi"; // This will come from user profile
+  const userName = profile?.first_name || "Friend";
   const { completedDares, streakDays, highlightedDareId } = useDare();
 
   // Convert completedDares object to array format for DareHistory
@@ -53,6 +61,12 @@ export default function Home() {
           {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
+              <TouchableOpacity
+                onPress={() => router.push("/settings")}
+                style={styles.settingsButton}
+              >
+                <Text style={styles.settingsIcon}>⚙️</Text>
+              </TouchableOpacity>
               <Text style={styles.welcomeText}>
                 Ready for your next drop, {userName}?
               </Text>
@@ -71,7 +85,10 @@ export default function Home() {
             activeOpacity={0.9}
             onPress={() => router.push("/your-dares")}
           >
-            <DareHistory dares={completedDaresList} highlightedDareId={highlightedDareId} />
+            <DareHistory
+              dares={completedDaresList}
+              highlightedDareId={highlightedDareId}
+            />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -105,6 +122,16 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
     marginRight: 16,
+  },
+  settingsButton: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    padding: 4,
+    zIndex: 1,
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   welcomeText: {
     fontSize: 40,

@@ -18,12 +18,15 @@ DareDrop delivers everyday creative challenges to help you break out of your rou
 - ✅ Themed color palette from Figma designs
 - ✅ Cross-platform (iOS, Android, Web)
 - ✅ Smooth animations using React Native Animated API
+- ✅ **User Authentication with Supabase**
+- ✅ **User profiles (first name, last name, email)**
+- ✅ **Cloud storage for dares**
+- ✅ **Secure login/logout functionality**
+- ✅ Dare history with actual completed dare photos
 
 ### Planned
 
 - 🔜 Daily dare rotation (one new dare per day)
-- 🔜 User authentication
-- 🔜 Dare history with actual completed dare photos
 - 🔜 Share completed dares with the community
 - 🔜 Custom dare categories (art, writing, photography, etc.)
 - 🔜 Difficulty levels
@@ -51,9 +54,12 @@ The app follows a warm, inviting design aesthetic with:
 - **Router:** Expo Router (File-based routing)
 - **Language:** TypeScript
 - **Navigation:** React Navigation (via Expo Router)
+- **Backend:** Supabase (Authentication + PostgreSQL Database)
+- **Storage:** AsyncStorage for auth token persistence
 - **Styling:** React Native StyleSheet with custom theme system
 - **Fonts:** Google Fonts (Poor Story, Outfit)
 - **Animations:** React Native Animated API
+- **Icons:** Lucide React Native
 
 ## 🚀 Getting Started
 
@@ -64,6 +70,7 @@ The app follows a warm, inviting design aesthetic with:
 - For iOS: macOS with Xcode
 - For Android: Android Studio
 - Expo Go app (for testing on physical devices)
+- **Supabase account** (free tier works great!)
 
 ### Installation
 
@@ -80,36 +87,63 @@ cd daredrop-app
 npm install
 ```
 
-3. Start the development server:
+3. **Set up Supabase** (Required for authentication):
+
+   - Follow the quick setup guide: **[AUTH_QUICK_START.md](AUTH_QUICK_START.md)** (5 minutes)
+   - Or detailed guide: **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)**
+   - Create `.env` file with your Supabase credentials
+
+4. Start the development server:
 
 ```bash
 npx expo start
 ```
 
-4. Run on your device or emulator:
+5. Run on your device or emulator:
    - **iOS Simulator:** Press `i` in the terminal
    - **Android Emulator:** Press `a` in the terminal
    - **Physical Device:** Scan the QR code with Expo Go app
    - **Web:** Press `w` in the terminal
+
+### Important Files
+
+- **[AUTH_QUICK_START.md](AUTH_QUICK_START.md)** - 5-minute setup guide for authentication
+- **[SUPABASE_SETUP.md](SUPABASE_SETUP.md)** - Detailed Supabase configuration
+- **[AUTHENTICATION_README.md](AUTHENTICATION_README.md)** - Complete auth system documentation
 
 ## 📁 Project Structure
 
 ```
 daredrop-app/
 ├── app/                          # Expo Router pages
-│   ├── _layout.tsx              # Root layout with font loading
-│   └── index.tsx                # Home screen
+│   ├── auth/                    # Authentication screens
+│   │   ├── _layout.tsx         # Auth layout
+│   │   ├── login.tsx           # Login screen
+│   │   └── sign-up.tsx         # Sign up screen
+│   ├── _layout.tsx              # Root layout with auth protection
+│   ├── index.tsx                # Home screen (protected)
+│   ├── complete-dare.tsx        # Dare completion screen
+│   ├── your-dares.tsx           # Dare history screen
+│   └── settings.tsx             # Settings & profile screen
 ├── components/                   # React Native components
 │   ├── EnvelopeAnimation.tsx   # Animated envelope component
 │   ├── FireBadge.tsx           # Streak counter badge
 │   └── DareHistory.tsx         # Dare history grid
+├── contexts/                     # React Context providers
+│   ├── AuthContext.tsx         # Authentication state management
+│   └── DareContext.tsx         # Dare state with Supabase sync
+├── lib/                          # Library code
+│   └── supabase.ts             # Supabase client configuration
 ├── constants/                    # App constants
 │   └── theme.ts                # Color palette, fonts, spacing
 ├── assets/                       # Images, fonts, etc.
 ├── app.json                      # Expo configuration
 ├── babel.config.js              # Babel configuration
 ├── metro.config.js              # Metro bundler config
-└── README.md                     # This file
+├── README.md                     # This file
+├── AUTH_QUICK_START.md          # Quick authentication setup guide
+├── AUTHENTICATION_README.md     # Complete auth documentation
+└── SUPABASE_SETUP.md            # Detailed Supabase setup
 ```
 
 ## 🎯 Key Components
@@ -175,13 +209,16 @@ The app uses a centralized theme system in `constants/theme.ts`:
 - Local storage for offline access
 - Persistent streak tracking
 
-### Phase 3: User Features
+### Phase 3: User Features ✅ (Completed)
 
-- User authentication (Firebase/Supabase)
-- Profile pages
-- Actual dare history with photos
-- Enhanced streak system with notifications
-- User preferences
+- ✅ User authentication with Supabase
+- ✅ User profiles with first name, last name, email
+- ✅ Actual dare history with photos
+- ✅ Settings page with profile info
+- ✅ Secure logout functionality
+- ✅ Cloud storage for all dares
+- 🔜 Enhanced streak system with notifications
+- 🔜 Extended user preferences
 
 ### Phase 4: Content Creation
 
