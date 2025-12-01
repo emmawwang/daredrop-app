@@ -7,7 +7,9 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  TouchableOpacity,
 } from "react-native";
+import { useRouter } from "expo-router";
 import {
   Colors,
   BorderRadius,
@@ -30,8 +32,22 @@ interface DareHistoryProps {
   fullScreen?: boolean;
 }
 
-export default function DareHistory({ dares = [], highlightedDareId = null, fullScreen = false }: DareHistoryProps) {
+export default function DareHistory({
+  dares = [],
+  highlightedDareId = null,
+  fullScreen = false,
+}: DareHistoryProps) {
   const isEmpty = dares.length === 0;
+  const router = useRouter();
+
+  const handleDarePress = (dare: DareHistoryItem) => {
+    router.push({
+      pathname: "/dare-detail",
+      params: {
+        dare: dare.id,
+      },
+    });
+  };
 
   return (
     <View style={[styles.container, fullScreen && styles.fullScreenContainer]}>
@@ -52,6 +68,7 @@ export default function DareHistory({ dares = [], highlightedDareId = null, full
                 dare={dare}
                 index={index}
                 isHighlighted={highlightedDareId === dare.id}
+                onPress={() => handleDarePress(dare)}
               />
             ))}
           </View>
@@ -79,10 +96,12 @@ function DareCircle({
   dare,
   index,
   isHighlighted,
+  onPress,
 }: {
   dare: DareHistoryItem;
   index: number;
   isHighlighted: boolean;
+  onPress: () => void;
 }) {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const borderAnim = React.useRef(new Animated.Value(0)).current;
@@ -92,7 +111,7 @@ function DareCircle({
       // Reset animations
       scaleAnim.setValue(1);
       borderAnim.setValue(0);
-      
+
       // Start highlight animation
       Animated.parallel([
         Animated.sequence([
@@ -135,31 +154,33 @@ function DareCircle({
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.dareCircle,
-        {
-          transform: [{ scale: scaleAnim }],
-        },
-      ]}
-    >
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
       <Animated.View
         style={[
-          styles.dareCircleInner,
+          styles.dareCircle,
           {
-            backgroundColor: getPlaceholderColor(index),
-            borderColor: borderColor,
-            borderWidth: borderWidth,
+            transform: [{ scale: scaleAnim }],
           },
         ]}
       >
-        {dare.image ? (
-          <Image source={{ uri: dare.image }} style={styles.dareImage} />
-        ) : (
-          <Text style={styles.darePlaceholder}>📸</Text>
-        )}
+        <Animated.View
+          style={[
+            styles.dareCircleInner,
+            {
+              backgroundColor: getPlaceholderColor(index),
+              borderColor: borderColor,
+              borderWidth: borderWidth,
+            },
+          ]}
+        >
+          {dare.image ? (
+            <Image source={{ uri: dare.image }} style={styles.dareImage} />
+          ) : (
+            <Text style={styles.darePlaceholder}>📸</Text>
+          )}
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </TouchableOpacity>
   );
 }
 

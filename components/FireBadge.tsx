@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSizes, Fonts } from "@/constants/theme";
 
 interface FireBadgeProps {
@@ -10,14 +11,32 @@ export default function FireBadge({ days }: FireBadgeProps) {
   return (
     <View style={styles.container}>
       <View style={styles.fireIcon}>
-        {/* Outer flame - orange */}
-        <View style={styles.outerFlame} />
+        {/* Orange flame layer */}
+        <Ionicons
+          name="flame"
+          size={90}
+          color={Colors.accent.orangeRed}
+          style={styles.redFlame}
+        />
 
-        {/* Middle flame - red-orange */}
-        <View style={styles.middleFlame} />
+        {/* Yellow flame layer in middle */}
+        <Ionicons
+          name="flame"
+          size={70}
+          color={Colors.accent.orange}
+          style={styles.orangeFlame}
+        />
+        {/* orange flame layer on top */}
+        <Ionicons
+          name="flame"
+          size={55}
+          opacity={0.5}
+          color={Colors.accent.yellow}
+          style={styles.yellowFlame}
+        />
 
-        {/* Inner flame - yellow with number */}
-        <View style={styles.innerFlame}>
+        {/* Days number */}
+        <View style={styles.numberContainer}>
           <Text style={styles.daysNumber}>{days}</Text>
         </View>
       </View>
@@ -32,66 +51,46 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   fireIcon: {
-    width: 80,
+    width: 90,
     height: 95,
     position: "relative",
     alignItems: "center",
-    justifyContent: "flex-end",
-    paddingBottom: 8,
+    justifyContent: "center",
   },
-  outerFlame: {
+  redFlame: {
     position: "absolute",
-    bottom: 0,
-    width: 80,
-    height: 95,
-    backgroundColor: Colors.accent.orange,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    // Create flame points at the top
-    transform: [{ scaleX: 0.8 }],
+    top: 0,
+    left: 0,
   },
-  middleFlame: {
+  yellowFlame: {
     position: "absolute",
-    bottom: 5,
-    width: 65,
-    height: 80,
-    backgroundColor: Colors.accent.orangeRed,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    transform: [{ scaleX: 0.8 }],
+    top: 22,
+    left: 18,
   },
-  innerFlame: {
+  orangeFlame: {
     position: "absolute",
-    bottom: 10,
-    width: 50,
-    height: 65,
-    backgroundColor: "#F4C430", // Golden yellow
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
-    transform: [{ scaleX: 0.8 }],
+    top: 10,
+    left: 10,
+  },
+  numberContainer: {
+    position: "absolute",
+    top: 35,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
   },
   daysNumber: {
     fontSize: 32,
-    fontFamily: Fonts.primary.regular,
+    fontFamily: Fonts.secondary.semiBold,
     color: Colors.accent.orangeRed,
     fontWeight: "bold",
-    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowColor: Colors.white,
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 10,
   },
   daysText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: Fonts.secondary.regular,
     color: Colors.accent.orange,
-    marginTop: -4,
+    marginTop: -8,
   },
 });

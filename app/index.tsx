@@ -8,6 +8,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useMemo } from "react";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import EnvelopeAnimation from "@/components/EnvelopeAnimation";
 import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
@@ -53,6 +54,19 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* Settings Button - Upper Right Corner */}
+      <TouchableOpacity
+        onPress={() => router.push("/settings")}
+        style={styles.settingsButton}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name="settings-outline"
+          size={24}
+          color={Colors.primary[500]}
+        />
+      </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -61,12 +75,6 @@ export default function Home() {
           {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <TouchableOpacity
-                onPress={() => router.push("/settings")}
-                style={styles.settingsButton}
-              >
-                <Text style={styles.settingsIcon}>⚙️</Text>
-              </TouchableOpacity>
               <Text style={styles.welcomeText}>
                 Ready for your next drop, {userName}?
               </Text>
@@ -114,31 +122,38 @@ const styles = StyleSheet.create({
   header: {
     width: "100%",
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "flex-start",
-    marginBottom: 16,
     paddingHorizontal: 8,
+    marginTop: 40,
+    gap: 15,
   },
   headerLeft: {
-    flex: 1,
-    marginRight: 16,
+    flex: 0,
+    maxWidth: "70%",
   },
   settingsButton: {
     position: "absolute",
-    top: 0,
-    right: 0,
-    padding: 4,
-    zIndex: 1,
-  },
-  settingsIcon: {
-    fontSize: 24,
+    top: 44,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 22,
+    backgroundColor: Colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+    shadowColor: Colors.gray[900],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   welcomeText: {
     fontSize: 40,
-    marginTop: 36,
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
-    lineHeight: 36,
+    lineHeight: 44,
   },
   dareSection: {
     width: "100%",
@@ -149,7 +164,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontFamily: Fonts.primary.regular,
     color: Colors.secondary[500],
-    marginBottom: 16,
+    marginBottom: 20,
     alignSelf: "flex-start",
     paddingLeft: 8,
   },

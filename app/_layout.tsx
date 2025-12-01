@@ -53,6 +53,7 @@ function RootLayoutNav() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="complete-dare" />
+      <Stack.Screen name="dare-detail" />
       <Stack.Screen name="your-dares" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="auth" />

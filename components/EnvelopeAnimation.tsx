@@ -135,10 +135,10 @@ export default function EnvelopeAnimation({
 
   const handleComplete = () => {
     if (isCompleted) {
-      // If already completed, go to congrats screen
+      // If already completed, go to dare detail screen
       router.push({
-        pathname: "/complete-dare",
-        params: { dare, completed: "true", imageUri: dareImage },
+        pathname: "/dare-detail",
+        params: { dare },
       });
     } else {
       // Navigate to complete dare screen to capture photo
