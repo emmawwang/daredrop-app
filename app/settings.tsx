@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 16,
-    fontFamily: Fonts.secondary.medium,
+    fontFamily: Fonts.secondary.regular,
     color: Colors.primary[500],
   },
   divider: {
