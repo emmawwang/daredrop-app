@@ -35,7 +35,7 @@ export default function Settings() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <ChevronLeft size={28} color={Colors.gray[700]} />
+            <ChevronLeft size={28} color={Colors.primary[500]} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Settings</Text>
           <View style={styles.placeholder} />
@@ -70,7 +70,7 @@ export default function Settings() {
 
         {/* Sign Out Button */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <LogOut size={20} color={Colors.red[600]} />
+          <LogOut size={20} color={Colors.accent.orangeRed} />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.secondary.semiBold,
-    color: Colors.gray[900],
+    color: Colors.primary[500],
   },
   placeholder: {
     width: 36,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: Fonts.secondary.semiBold,
-    color: Colors.gray[700],
+    color: Colors.primary[500],
     marginBottom: 12,
   },
   infoCard: {
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 16,
     fontFamily: Fonts.secondary.medium,
-    color: Colors.gray[900],
+    color: Colors.primary[500],
   },
   divider: {
     height: 1,
@@ -158,13 +158,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: Colors.red[50],
     borderRadius: 12,
+    shadowColor: Colors.accent.orangeRed,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 0.1,
+    borderColor: Colors.accent.orangeRed,
+    elevation: 2,
     paddingVertical: 16,
     marginTop: 20,
   },
   signOutText: {
     fontSize: 16,
     fontFamily: Fonts.secondary.semiBold,
-    color: Colors.red[600],
+    color: Colors.accent.orangeRed,
     marginLeft: 8,
   },
   versionText: {

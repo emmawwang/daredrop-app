@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import EnvelopeAnimation from "@/components/EnvelopeAnimation";
 import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
+import TopRightButton from "@/components/TopRightButton";
 import { Colors, FontSizes, Fonts } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,17 +56,16 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {/* Settings Button - Upper Right Corner */}
-      <TouchableOpacity
+      <TopRightButton
         onPress={() => router.push("/settings")}
         style={styles.settingsButton}
-        activeOpacity={0.7}
       >
         <Ionicons
           name="settings-outline"
           size={24}
           color={Colors.primary[500]}
         />
-      </TouchableOpacity>
+      </TopRightButton>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -136,18 +136,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 44,
     right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 22,
-    backgroundColor: Colors.background,
-    alignItems: "center",
-    justifyContent: "center",
     zIndex: 10,
-    shadowColor: Colors.gray[900],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   welcomeText: {
     fontSize: 40,

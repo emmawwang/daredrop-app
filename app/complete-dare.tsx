@@ -12,9 +12,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
+import { Pencil } from "lucide-react-native";
+import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
-import { Pencil, House } from "lucide-react-native";
 
 export default function CompleteDare() {
   const router = useRouter();
@@ -144,13 +146,12 @@ export default function CompleteDare() {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.congratsContainer}>
-          <TouchableOpacity
+          <TopRightButton
             style={styles.homeButton}
             onPress={handleGoHome}
-            activeOpacity={0.7}
           >
-            <House color={Colors.primary[500]} size={28} />
-          </TouchableOpacity>
+            <Ionicons name="home" size={24} color={Colors.primary[500]} />
+          </TopRightButton>
 
           <View style={styles.congratsCard}>
             <Text style={styles.congratsTitle}>CONGRATS</Text>
@@ -282,13 +283,12 @@ export default function CompleteDare() {
           </TouchableOpacity>
 
           {/* Home Button */}
-          <TouchableOpacity
+          <TopRightButton
             style={styles.homeButton}
             onPress={handleGoHome}
-            activeOpacity={0.7}
           >
-            <House color={Colors.primary[500]} size={28} />
-          </TouchableOpacity>
+            <Ionicons name="home" size={24} color={Colors.primary[500]} />
+          </TopRightButton>
 
           {/* Dare Card */}
           <View style={styles.dareCard}>
@@ -389,13 +389,6 @@ const styles = StyleSheet.create({
     top: 20,
     right: 20,
     zIndex: 10,
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  homeIcon: {
-    fontSize: 28,
   },
   dareCard: {
     backgroundColor: Colors.accent.green,

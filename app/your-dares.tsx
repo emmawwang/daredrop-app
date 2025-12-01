@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
-import { House } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import DareHistory from "@/components/DareHistory";
+import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
 
@@ -26,13 +27,12 @@ export default function YourDares() {
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.container}>
         {/* Home Button */}
-        <TouchableOpacity
+        <TopRightButton
           style={styles.homeButton}
           onPress={() => router.back()}
-          activeOpacity={0.7}
         >
-          <House color={Colors.primary[500]} size={28} />
-        </TouchableOpacity>
+          <Ionicons name="home" size={24} color={Colors.primary[500]} />
+        </TopRightButton>
 
         {/* Expanded Dare History */}
         <ScrollView
@@ -61,10 +61,6 @@ const styles = StyleSheet.create({
     top: 20,
     right: 20,
     zIndex: 10,
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
   },
   scrollView: {
     flex: 1,
