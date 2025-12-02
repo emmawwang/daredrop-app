@@ -11,6 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -39,6 +40,7 @@ export default function CompleteDare() {
     setHighlightedDare,
     getDareReflection,
     getDareDraft,
+    getDareImage,
   } = useDare();
 
   // Get dare type from constants
@@ -176,6 +178,50 @@ export default function CompleteDare() {
       setHighlightedDare(dare);
     }
     router.back();
+  };
+
+  const handleShare = async () => {
+    try {
+      let message = `I completed a DareDrop dare! 🎨\n\n"${dare}"`;
+
+      // Get reflection text - use state if available, otherwise get from context
+      const reflection = reflectionText || getDareReflection(dare);
+      if (reflection) {
+        message += `\n\nMy reflection:\n"${reflection}"`;
+      }
+
+      message += `\n\nJoin me in being creative every day with DareDrop!`;
+
+      // Get image URI - use selectedImage if available, otherwise get from context
+      const imageUri = selectedImage || (dareType === "photo" ? getDareImage(dare) : undefined);
+
+      const result = await Share.share(
+        {
+          message: message,
+          // On iOS, you can also share URLs and other content
+          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
+        },
+        {
+          // On Android, you can specify a dialog title
+          ...(Platform.OS === "android"
+            ? { dialogTitle: "Share your dare!" }
+            : {}),
+        }
+      );
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // Shared with activity type of result.activityType
+        } else {
+          // Shared
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // Dismissed
+      }
+    } catch (error: any) {
+      Alert.alert("Error", "Failed to share dare");
+      console.error(error);
+    }
   };
 
   const handleEditDare = () => {
@@ -364,11 +410,19 @@ export default function CompleteDare() {
               </View>
             </Modal>
 
-            <TouchableOpacity style={styles.shareButton} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.shareButton}
+              onPress={handleShare}
+              activeOpacity={0.7}
+            >
               <Text style={styles.shareButtonText}>Share your Dare!</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sparkNote} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.sparkNote}
+              onPress={() => router.push("/your-dares")}
+              activeOpacity={0.7}
+            >
               <Text style={styles.sparkNoteText}>
                 See your past creative sparks!
               </Text>
