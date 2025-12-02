@@ -154,6 +154,6 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   dareHistorySection: {
-    marginTop: 20,
+    marginTop: 10,
   },
 });
