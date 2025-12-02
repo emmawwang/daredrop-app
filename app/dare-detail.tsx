@@ -11,6 +11,8 @@ import {
   Platform,
   Modal,
 } from "react-native";
+import { Video, ResizeMode } from "expo-av";
+import { isVideoFile } from "@/lib/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -147,7 +149,17 @@ export default function DareDetail() {
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Creation</Text>
               <View style={styles.imageWrapper}>
-                <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                {isVideoFile(imageUri) ? (
+                  <Video
+                    source={{ uri: imageUri }}
+                    style={styles.dareImage}
+                    useNativeControls
+                    resizeMode={ResizeMode.CONTAIN}
+                    isLooping
+                  />
+                ) : (
+                  <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                )}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}

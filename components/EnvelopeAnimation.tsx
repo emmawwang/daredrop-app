@@ -231,7 +231,7 @@ export default function EnvelopeAnimation({
                     isCompleted && styles.viewDareButtonText,
                   ]}
                 >
-                  {isCompleted ? "View dare" : "Complete"}
+                  {isCompleted ? "View dare" : "Start"}
                 </Text>
               </TouchableOpacity>
             )}

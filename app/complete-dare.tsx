@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { isVideoFile } from "@/lib/storage";
+import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import { Pencil } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
@@ -72,10 +74,11 @@ export default function CompleteDare() {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images", "videos"], // Allow both photos and videos
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      videoMaxDuration: 30, // Limit videos to 30 seconds
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -88,10 +91,11 @@ export default function CompleteDare() {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images", "videos"], // Allow both images and videos
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      videoMaxDuration: 30, // Limit videos to 30 seconds
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -135,7 +139,7 @@ export default function CompleteDare() {
     setIsCompleted(false);
     setShowDeleteConfirmation(false);
     setShowDeleteSuccess(true);
-    
+
     // Navigate home after 1.5 seconds
     setTimeout(() => {
       router.back();
@@ -146,10 +150,7 @@ export default function CompleteDare() {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.congratsContainer}>
-          <TopRightButton
-            style={styles.homeButton}
-            onPress={handleGoHome}
-          >
+          <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
             <Ionicons name="home" size={24} color={Colors.primary[500]} />
           </TopRightButton>
 
@@ -161,7 +162,20 @@ export default function CompleteDare() {
 
             {selectedImage && (
               <View style={styles.thumbnailContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.thumbnail} />
+                {isVideoFile(selectedImage) ? (
+                  <Video
+                    source={{ uri: selectedImage }}
+                    style={styles.thumbnail}
+                    useNativeControls
+                    resizeMode={ResizeMode.COVER}
+                    isLooping
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.thumbnail}
+                  />
+                )}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -197,7 +211,12 @@ export default function CompleteDare() {
                     onPress={handleDeleteDare}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.modalOptionText, styles.modalOptionTextDelete]}>
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        styles.modalOptionTextDelete,
+                      ]}
+                    >
                       Delete dare
                     </Text>
                   </TouchableOpacity>
@@ -218,7 +237,9 @@ export default function CompleteDare() {
                 onPress={() => setShowDeleteConfirmation(false)}
               >
                 <View style={styles.modalContent}>
-                  <Text style={styles.confirmationTitle}>Delete this dare?</Text>
+                  <Text style={styles.confirmationTitle}>
+                    Delete this dare?
+                  </Text>
                   <TouchableOpacity
                     style={styles.modalOption}
                     onPress={handleConfirmDeletion}
@@ -231,7 +252,12 @@ export default function CompleteDare() {
                     onPress={() => setShowDeleteConfirmation(false)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.modalOptionText, styles.modalOptionTextCancel]}>
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        styles.modalOptionTextCancel,
+                      ]}
+                    >
                       Cancel
                     </Text>
                   </TouchableOpacity>
@@ -247,7 +273,9 @@ export default function CompleteDare() {
             >
               <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                  <Text style={styles.successTitle}>Dare successfully deleted</Text>
+                  <Text style={styles.successTitle}>
+                    Dare successfully deleted
+                  </Text>
                 </View>
               </View>
             </Modal>
@@ -283,10 +311,7 @@ export default function CompleteDare() {
           </TouchableOpacity>
 
           {/* Home Button */}
-          <TopRightButton
-            style={styles.homeButton}
-            onPress={handleGoHome}
-          >
+          <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
             <Ionicons name="home" size={24} color={Colors.primary[500]} />
           </TopRightButton>
 
@@ -299,10 +324,20 @@ export default function CompleteDare() {
           {/* Selected Image or Action Buttons */}
           {selectedImage ? (
             <View style={styles.imagePreview}>
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.previewImage}
-              />
+              {isVideoFile(selectedImage) ? (
+                <Video
+                  source={{ uri: selectedImage }}
+                  style={styles.previewImage}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                  isLooping
+                />
+              ) : (
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles.previewImage}
+                />
+              )}
 
               <View style={styles.actionButtons}>
                 <TouchableOpacity
