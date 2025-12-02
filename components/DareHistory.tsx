@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     minHeight: 280,
     borderWidth: 1.5,
-    borderColor: Colors.secondary[500],
+    borderColor: Colors.primary[500],
     ...Shadows.medium,
     flexDirection: "column",
   },
