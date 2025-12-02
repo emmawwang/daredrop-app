@@ -12,19 +12,28 @@ interface DareData {
   dare_text: string;
   completed: boolean;
   image_uri?: string;
+  reflection_text?: string;
   completed_at?: string;
 }
 
+interface CompletedDareData {
+  completed: boolean;
+  imageUri?: string;
+  reflectionText?: string;
+  completedAt?: string;
+}
+
 interface DareContextType {
-  completedDares: Record<
-    string,
-    { completed: boolean; imageUri?: string; completedAt?: string }
-  >;
+  completedDares: Record<string, CompletedDareData>;
   streakDays: number;
   highlightedDareId: string | null;
-  markDareComplete: (dare: string, imageUri?: string) => Promise<void>;
+  markDareComplete: (
+    dare: string,
+    options?: { imageUri?: string; reflectionText?: string }
+  ) => Promise<void>;
   isDareCompleted: (dare: string) => boolean;
   getDareImage: (dare: string) => string | undefined;
+  getDareReflection: (dare: string) => string | undefined;
   getDareDate: (dare: string) => string | undefined;
   deleteDare: (dare: string) => Promise<void>;
   setHighlightedDare: (dare: string) => void;
@@ -36,10 +45,7 @@ const DareContext = createContext<DareContextType | undefined>(undefined);
 
 export function DareProvider({ children }: { children: ReactNode }) {
   const [completedDares, setCompletedDares] = useState<
-    Record<
-      string,
-      { completed: boolean; imageUri?: string; completedAt?: string }
-    >
+    Record<string, CompletedDareData>
   >({});
   const [streakDays, setStreakDays] = useState(0);
   const [highlightedDareId, setHighlightedDareId] = useState<string | null>(
@@ -70,16 +76,14 @@ export function DareProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       if (data) {
-        const daresMap: Record<
-          string,
-          { completed: boolean; imageUri?: string; completedAt?: string }
-        > = {};
+        const daresMap: Record<string, CompletedDareData> = {};
         let completedCount = 0;
 
         data.forEach((dare: DareData) => {
           daresMap[dare.dare_text] = {
             completed: dare.completed,
             imageUri: dare.image_uri,
+            reflectionText: dare.reflection_text,
             completedAt: dare.completed_at,
           };
           if (dare.completed) completedCount++;
@@ -99,7 +103,10 @@ export function DareProvider({ children }: { children: ReactNode }) {
     loadDares();
   }, []);
 
-  const markDareComplete = async (dare: string, imageUri?: string) => {
+  const markDareComplete = async (
+    dare: string,
+    options?: { imageUri?: string; reflectionText?: string }
+  ) => {
     try {
       const {
         data: { user },
@@ -107,6 +114,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
       if (!user) return;
 
       const wasAlreadyCompleted = completedDares[dare]?.completed || false;
+      const { imageUri, reflectionText } = options || {};
 
       // Check if dare already exists in database
       const { data: existingDare } = await supabase
@@ -123,6 +131,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
           .update({
             completed: true,
             image_uri: imageUri,
+            reflection_text: reflectionText,
             completed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
@@ -136,6 +145,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
           dare_text: dare,
           completed: true,
           image_uri: imageUri,
+          reflection_text: reflectionText,
           completed_at: new Date().toISOString(),
         });
 
@@ -152,6 +162,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
           [dare]: {
             completed: true,
             imageUri,
+            reflectionText,
             completedAt: new Date().toISOString(),
           },
         };
@@ -174,6 +185,10 @@ export function DareProvider({ children }: { children: ReactNode }) {
 
   const getDareImage = (dare: string) => {
     return completedDares[dare]?.imageUri;
+  };
+
+  const getDareReflection = (dare: string) => {
+    return completedDares[dare]?.reflectionText;
   };
 
   const getDareDate = (dare: string) => {
@@ -220,6 +235,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
         markDareComplete,
         isDareCompleted,
         getDareImage,
+        getDareReflection,
         getDareDate,
         deleteDare,
         setHighlightedDare,
