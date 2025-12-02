@@ -39,6 +39,7 @@ export default function Home() {
       .map(([dare, data]) => ({
         id: dare,
         image: data.imageUri,
+        reflectionText: data.reflectionText,
         completed: data.completed,
       }));
   }, [completedDares]);
@@ -76,7 +77,6 @@ export default function Home() {
           <View style={styles.dareSection}>
             <Text style={styles.dareSectionTitle}>Your Dare Today:</Text>
             <EnvelopeAnimation
-              key={currentDare.text}
               dare={currentDare.text}
               onChooseNewDare={handleChooseNewDare}
             />

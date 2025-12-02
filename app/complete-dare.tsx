@@ -16,10 +16,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { Pencil, FileText } from "lucide-react-native";
+import { Pencil, FileText, MessageCircle } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
-import { getDareByText } from "@/constants/dares";
+import { getDareByText, getTextDareIcon } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 export default function CompleteDare() {
@@ -32,9 +32,11 @@ export default function CompleteDare() {
 
   const {
     markDareComplete,
+    saveDraft,
     deleteDare,
     setHighlightedDare,
     getDareReflection,
+    getDareDraft,
   } = useDare();
 
   // Get dare type from constants
@@ -66,12 +68,18 @@ export default function CompleteDare() {
     }
   }, [alreadyCompleted, existingImage, existingReflection]);
 
-  // Load existing reflection if editing
+  // Load existing reflection or draft if editing
   useEffect(() => {
     if (dareType === "text" && !existingReflection) {
       const savedReflection = getDareReflection(dare);
       if (savedReflection) {
         setReflectionText(savedReflection);
+      } else {
+        // Load draft if no completed reflection
+        const savedDraft = getDareDraft(dare);
+        if (savedDraft) {
+          setReflectionText(savedDraft);
+        }
       }
     }
   }, [dare, dareType]);
@@ -149,6 +157,17 @@ export default function CompleteDare() {
     setReflectionText("");
   };
 
+  const handleSaveProgress = async () => {
+    if (reflectionText.trim()) {
+      await saveDraft(dare, reflectionText.trim());
+      Alert.alert(
+        "Progress Saved!",
+        "Your draft has been saved. Come back anytime to finish.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    }
+  };
+
   const handleGoHome = () => {
     // If dare is completed, highlight it when navigating home
     if (isCompleted && dare) {
@@ -216,15 +235,25 @@ export default function CompleteDare() {
               </View>
             )}
 
-            {/* Show text preview for text dares */}
+            {/* Show icon for text dares */}
             {dareType === "text" && reflectionText && (
-              <View style={styles.reflectionPreviewContainer}>
-                <FileText color={Colors.white} size={24} />
-                <Text style={styles.reflectionPreviewText} numberOfLines={3}>
-                  "{reflectionText}"
-                </Text>
+              <View style={styles.thumbnailContainer}>
+                {getTextDareIcon(dare) ? (
+                  <Image
+                    source={getTextDareIcon(dare)!}
+                    style={styles.thumbnail}
+                  />
+                ) : (
+                  <View style={styles.textDareIcon}>
+                    <MessageCircle
+                      color={Colors.primary[500]}
+                      size={48}
+                      fill={Colors.accent.yellow}
+                    />
+                  </View>
+                )}
                 <TouchableOpacity
-                  style={styles.pencilButtonText}
+                  style={styles.pencilButton}
                   activeOpacity={0.7}
                   onPress={() => setShowEditModal(true)}
                 >
@@ -328,14 +357,12 @@ export default function CompleteDare() {
             </Modal>
 
             <TouchableOpacity style={styles.shareButton} activeOpacity={0.7}>
-              <Text style={styles.shareButtonText}>
-                Share your Dare! {"\n"} [coming soon]
-              </Text>
+              <Text style={styles.shareButtonText}>Share your Dare!</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sparkNote} activeOpacity={0.7}>
               <Text style={styles.sparkNoteText}>
-                See your past creative sparks! {"\n"} [coming soon]
+                See your past creative sparks!
               </Text>
             </TouchableOpacity>
           </View>
@@ -401,8 +428,8 @@ export default function CompleteDare() {
                       >
                         <Text style={styles.buttonTextDark}>
                           {selectedImage.includes("camera")
-                            ? "retake"
-                            : "reselect"}
+                            ? "Retake"
+                            : "Reselect"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -459,13 +486,25 @@ export default function CompleteDare() {
                   </TouchableOpacity>
 
                   {reflectionText.length > 0 && (
-                    <TouchableOpacity
-                      style={styles.retakeButton}
-                      onPress={handleClearText}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.buttonTextDark}>Clear</Text>
-                    </TouchableOpacity>
+                    <>
+                      <TouchableOpacity
+                        style={styles.saveProgressButton}
+                        onPress={handleSaveProgress}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.saveProgressText}>
+                          Save Progress
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={handleClearText}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.clearButtonText}>Clear</Text>
+                      </TouchableOpacity>
+                    </>
                   )}
                 </View>
 
@@ -604,6 +643,28 @@ const styles = StyleSheet.create({
     width: "80%",
     alignItems: "center",
   },
+  saveProgressButton: {
+    backgroundColor: Colors.accent.yellow,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: BorderRadius.xl,
+    width: "80%",
+    alignItems: "center",
+  },
+  saveProgressText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+  },
+  clearButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  clearButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.medium,
+    color: Colors.gray[500],
+  },
   buttonText: {
     fontSize: 18,
     fontFamily: Fonts.secondary.semiBold,
@@ -679,6 +740,16 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     borderWidth: 3,
     borderColor: Colors.white,
+  },
+  textDareIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: Colors.white,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pencilButton: {
     position: "absolute",
