@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { isVideoFile } from "@/lib/storage";
+import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import { Pencil, FileText, MessageCircle } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
@@ -179,7 +181,7 @@ export default function CompleteDare() {
   const handleEditDare = () => {
     setShowEditModal(false);
     setIsCompleted(false);
-    // Keep the content so user can see it and decide to change or keep it
+    // Keep the image/reflection so user can see it and decide to retake/reedit or keep it
   };
 
   const handleDeleteDare = () => {
@@ -190,7 +192,6 @@ export default function CompleteDare() {
   const handleConfirmDeletion = () => {
     deleteDare(dare);
     setSelectedImage(null);
-    setReflectionText("");
     setIsCompleted(false);
     setShowDeleteConfirmation(false);
     setShowDeleteSuccess(true);
@@ -200,9 +201,6 @@ export default function CompleteDare() {
       router.back();
     }, 1500);
   };
-
-  const canComplete =
-    dareType === "photo" ? !!selectedImage : reflectionText.trim().length > 0;
 
   if (isCompleted) {
     return (
@@ -221,10 +219,20 @@ export default function CompleteDare() {
             {/* Show thumbnail for photo dares */}
             {dareType === "photo" && selectedImage && (
               <View style={styles.thumbnailContainer}>
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={styles.thumbnail}
-                />
+                {isVideoFile(selectedImage) ? (
+                  <Video
+                    source={{ uri: selectedImage }}
+                    style={styles.thumbnail}
+                    useNativeControls
+                    resizeMode={ResizeMode.COVER}
+                    isLooping
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.thumbnail}
+                  />
+                )}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -374,7 +382,7 @@ export default function CompleteDare() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
@@ -407,10 +415,20 @@ export default function CompleteDare() {
               <>
                 {selectedImage ? (
                   <View style={styles.imagePreview}>
-                    <Image
-                      source={{ uri: selectedImage }}
-                      style={styles.previewImage}
-                    />
+                    {isVideoFile(selectedImage) ? (
+                      <Video
+                        source={{ uri: selectedImage }}
+                        style={styles.previewImage}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        isLooping
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri: selectedImage }}
+                        style={styles.previewImage}
+                      />
+                    )}
 
                     <View style={styles.actionButtons}>
                       <TouchableOpacity
@@ -418,7 +436,7 @@ export default function CompleteDare() {
                         onPress={handleComplete}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonText}>Complete</Text>
+                        <Text style={styles.buttonText}>complete</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -476,13 +494,13 @@ export default function CompleteDare() {
                   <TouchableOpacity
                     style={[
                       styles.completeButton,
-                      !canComplete && styles.completeButtonDisabled,
+                      !reflectionText.trim() && styles.completeButtonDisabled,
                     ]}
                     onPress={handleComplete}
                     activeOpacity={0.8}
-                    disabled={!canComplete}
+                    disabled={!reflectionText.trim()}
                   >
-                    <Text style={styles.buttonText}>Complete</Text>
+                    <Text style={styles.buttonText}>complete</Text>
                   </TouchableOpacity>
 
                   {reflectionText.length > 0 && (
@@ -507,10 +525,6 @@ export default function CompleteDare() {
                     </>
                   )}
                 </View>
-
-                <Text style={styles.characterCount}>
-                  {reflectionText.length} characters
-                </Text>
               </View>
             )}
           </View>
@@ -566,7 +580,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary[500],
     padding: 24,
     marginTop: 100,
-    marginBottom: 30,
+    marginBottom: 50,
   },
   dareTitle: {
     fontSize: 24,
@@ -629,10 +643,6 @@ const styles = StyleSheet.create({
     width: "80%",
     alignItems: "center",
   },
-  completeButtonDisabled: {
-    backgroundColor: Colors.gray[300],
-    borderColor: Colors.gray[300],
-  },
   retakeButton: {
     backgroundColor: "transparent",
     paddingVertical: 16,
@@ -675,37 +685,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.secondary[500],
   },
-  // Text Input Styles
-  textInputContainer: {
-    flex: 1,
-    gap: 16,
-  },
-  reflectionLabel: {
-    fontSize: 20,
-    fontFamily: Fonts.secondary.semiBold,
-    color: Colors.primary[500],
-    marginBottom: 4,
-  },
-  textInput: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 2,
-    borderColor: Colors.primary[500],
-    padding: 16,
-    fontSize: 16,
-    fontFamily: Fonts.secondary.regular,
-    color: Colors.text.dark,
-    minHeight: 200,
-    ...Shadows.medium,
-  },
-  characterCount: {
-    fontSize: 14,
-    fontFamily: Fonts.secondary.regular,
-    color: Colors.gray[500],
-    textAlign: "right",
-    marginTop: -8,
-  },
-  // Congrats Screen Styles
   congratsCard: {
     backgroundColor: Colors.secondary[500],
     borderRadius: BorderRadius.xxl,
@@ -763,37 +742,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 2,
     borderColor: Colors.white,
-    ...Shadows.small,
-  },
-  // Reflection preview on congrats screen
-  reflectionPreviewContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: BorderRadius.lg,
-    padding: 16,
-    marginBottom: 20,
-    width: "100%",
-    position: "relative",
-    alignItems: "center",
-    gap: 8,
-  },
-  reflectionPreviewText: {
-    fontSize: 14,
-    fontFamily: Fonts.secondary.regular,
-    color: Colors.white,
-    textAlign: "center",
-    fontStyle: "italic",
-    lineHeight: 20,
-  },
-  pencilButtonText: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.accent.yellow,
-    alignItems: "center",
-    justifyContent: "center",
     ...Shadows.small,
   },
   pencilIcon: {
@@ -883,5 +831,47 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary.bold,
     color: Colors.primary[500],
     textAlign: "center",
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  textInputContainer: {
+    flex: 1,
+    gap: 16,
+  },
+  reflectionLabel: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    marginBottom: 4,
+  },
+  textInput: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    padding: 16,
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    minHeight: 200,
+    ...Shadows.medium,
+  },
+  reflectionPreviewContainer: {
+    position: "relative",
+    marginBottom: 20,
+    alignItems: "center",
+    gap: 12,
+  },
+  reflectionPreviewText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.white,
+    textAlign: "center",
+    paddingHorizontal: 20,
+    maxWidth: 300,
+  },
+  completeButtonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -71,6 +71,7 @@ export default function Login() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                textContentType="oneTimeCode"
                 editable={!loading}
               />
             </View>

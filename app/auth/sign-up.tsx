@@ -141,6 +141,7 @@ export default function SignUp() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                textContentType="oneTimeCode"
                 editable={!loading}
               />
             </View>
@@ -155,6 +156,7 @@ export default function SignUp() {
                 onChangeText={setConfirmPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                textContentType="oneTimeCode"
                 editable={!loading}
               />
             </View>
