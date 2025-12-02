@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import { uploadMediaToSupabase, deleteMediaFromSupabase } from "@/lib/storage";
 
 interface DareData {
   id: string;
@@ -121,22 +122,48 @@ export function DareProvider({ children }: { children: ReactNode }) {
 
       const wasAlreadyCompleted = completedDares[dare]?.completed || false;
       const { imageUri, reflectionText } = options || {};
+      let uploadedUrl = imageUri;
+
+      // Upload media to Supabase Storage if it's a local file
+      if (imageUri && !imageUri.includes("supabase.co")) {
+        const dareId = `dare_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        const uploadResult = await uploadMediaToSupabase(
+          imageUri,
+          user.id,
+          dareId
+        );
+
+        if (uploadResult) {
+          uploadedUrl = uploadResult;
+        } else {
+          console.error("Failed to upload media, falling back to local URI");
+          uploadedUrl = imageUri; // Fallback to local URI
+        }
+      }
 
       // Check if dare already exists in database
       const { data: existingDare } = await supabase
         .from("dares")
-        .select("id, completed")
+        .select("id, completed, image_uri")
         .eq("user_id", user.id)
         .eq("dare_text", dare)
         .single();
 
       if (existingDare) {
+        // Delete old media from storage if updating with new media
+        if (existingDare.image_uri && uploadedUrl !== existingDare.image_uri) {
+          await deleteMediaFromSupabase(existingDare.image_uri);
+        }
+
+        // Update existing dare
         // Update existing dare - clear draft when completing
         const { error } = await supabase
           .from("dares")
           .update({
             completed: true,
-            image_uri: imageUri,
+            image_uri: uploadedUrl,
             reflection_text: reflectionText,
             draft_text: null, // Clear draft on completion
             completed_at: new Date().toISOString(),
@@ -151,7 +178,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
           user_id: user.id,
           dare_text: dare,
           completed: true,
-          image_uri: imageUri,
+          image_uri: uploadedUrl,
           reflection_text: reflectionText,
           completed_at: new Date().toISOString(),
         });
@@ -168,7 +195,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
           ...prev,
           [dare]: {
             completed: true,
-            imageUri,
+            imageUri: uploadedUrl,
             reflectionText,
             draftText: undefined, // Clear draft on completion
             completedAt: new Date().toISOString(),
@@ -270,6 +297,19 @@ export function DareProvider({ children }: { children: ReactNode }) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Get the dare to find its media URL
+      const { data: dareData } = await supabase
+        .from("dares")
+        .select("image_uri")
+        .eq("user_id", user.id)
+        .eq("dare_text", dare)
+        .single();
+
+      // Delete media from storage if exists
+      if (dareData?.image_uri) {
+        await deleteMediaFromSupabase(dareData.image_uri);
+      }
 
       // Delete from database
       const { error } = await supabase
