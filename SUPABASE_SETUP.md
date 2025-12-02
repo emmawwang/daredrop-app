@@ -79,6 +79,9 @@ create table public.dares (
   dare_text text not null,
   completed boolean default false not null,
   image_uri text,
+  video_uri text,
+  reflection_text text,
+  draft_text text,
   completed_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -111,6 +114,16 @@ create policy "Users can delete own dares"
 create index dares_user_id_idx on public.dares(user_id);
 create index dares_completed_idx on public.dares(completed);
 create index dares_created_at_idx on public.dares(created_at desc);
+```
+
+**Note**: If you already have the `dares` table, run this migration to add the new columns:
+
+```sql
+-- Add video_uri, reflection_text, and draft_text columns if they don't exist
+alter table public.dares 
+  add column if not exists video_uri text,
+  add column if not exists reflection_text text,
+  add column if not exists draft_text text;
 ```
 
 ### 3. Set Up Database Function to Create Profile on Signup
@@ -154,6 +167,76 @@ where completed = true
 group by user_id;
 ```
 
+### 5. Set Up Supabase Storage for Videos
+
+Videos are larger files, so we'll store them in Supabase Storage instead of the database.
+
+**Option A: Using Supabase Dashboard (Recommended)**
+
+1. Go to **Storage** in your Supabase Dashboard
+2. Click **"New bucket"**
+3. Create a bucket named `dare-videos` with the following settings:
+   - **Public bucket**: Toggle **OFF** (private bucket)
+   - **File size limit**: 50 MB (or your preferred limit)
+   - **Allowed MIME types**: `video/mp4`, `video/quicktime`, `video/x-msvideo` (or leave empty for all)
+4. Click **"Create bucket"**
+
+**Option B: Using SQL (Alternative)**
+
+Run this SQL in the SQL Editor:
+
+```sql
+-- Create storage bucket for dare videos
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'dare-videos',
+  'dare-videos',
+  false, -- Private bucket
+  52428800, -- 50 MB limit
+  ARRAY['video/mp4', 'video/quicktime', 'video/x-msvideo']
+);
+```
+
+### 6. Set Up Storage Policies (Row Level Security for Storage)
+
+Run this SQL to allow users to upload, view, and delete their own videos:
+
+```sql
+-- Policy: Users can upload videos to their own folder
+create policy "Users can upload own videos"
+on storage.objects for insert
+with check (
+  bucket_id = 'dare-videos' 
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: Users can view their own videos
+create policy "Users can view own videos"
+on storage.objects for select
+using (
+  bucket_id = 'dare-videos' 
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: Users can update their own videos
+create policy "Users can update own videos"
+on storage.objects for update
+using (
+  bucket_id = 'dare-videos' 
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: Users can delete their own videos
+create policy "Users can delete own videos"
+on storage.objects for delete
+using (
+  bucket_id = 'dare-videos' 
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+```
+
+**Important**: Videos will be stored in folders organized by user ID: `{user_id}/{video_filename}.mp4`
+
 ## Step 5: Enable Email Authentication
 
 1. In Supabase Dashboard, go to Authentication > Providers
@@ -174,6 +257,7 @@ group by user_id;
    - Go to Authentication > Users to see the new user
    - Go to Table Editor > profiles to see the profile created
    - Go to Table Editor > dares to see dares (after completing some)
+   - Go to Storage > dare-videos to see uploaded videos (after completing video dares)
 
 ## Database Schema Summary
 
@@ -193,13 +277,22 @@ group by user_id;
    - user_id (uuid, references profiles)
    - dare_text (text)
    - completed (boolean)
-   - image_uri (text, optional)
+   - image_uri (text, optional) - For photo dares
+   - video_uri (text, optional) - For video dares (Supabase Storage path)
+   - reflection_text (text, optional) - For text dares
+   - draft_text (text, optional) - For saving draft reflections
    - completed_at (timestamp, optional)
    - created_at (timestamp)
    - updated_at (timestamp)
 
+3. **Storage Bucket: dare-videos**
+   - Stores video files for video dares
+   - Organized by user ID: `{user_id}/{filename}.mp4`
+   - Private bucket (users can only access their own videos)
+
 ### Security:
 
 - Row Level Security (RLS) is enabled on all tables
+- Storage policies ensure users can only access their own videos
 - Users can only access their own data
 - Automatic profile creation on user signup

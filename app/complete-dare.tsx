@@ -28,6 +28,7 @@ export default function CompleteDare() {
   const dare = params.dare as string;
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
+  const existingVideo = params.videoUri as string | undefined;
   const existingReflection = params.reflectionText as string | undefined;
 
   const {
@@ -37,6 +38,7 @@ export default function CompleteDare() {
     setHighlightedDare,
     getDareReflection,
     getDareDraft,
+    getDareVideo,
   } = useDare();
 
   // Get dare type from constants
@@ -46,6 +48,9 @@ export default function CompleteDare() {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
+  );
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(
+    existingVideo || null
   );
   const [reflectionText, setReflectionText] = useState<string>(
     existingReflection || ""
@@ -61,12 +66,25 @@ export default function CompleteDare() {
       if (existingImage) {
         setSelectedImage(existingImage);
       }
+      if (existingVideo) {
+        setSelectedVideo(existingVideo);
+      }
       if (existingReflection) {
         setReflectionText(existingReflection);
       }
       setIsCompleted(true);
     }
-  }, [alreadyCompleted, existingImage, existingReflection]);
+  }, [alreadyCompleted, existingImage, existingVideo, existingReflection]);
+
+  // Load existing video if editing
+  useEffect(() => {
+    if (dareType === "video" && !existingVideo) {
+      const savedVideo = getDareVideo(dare);
+      if (savedVideo) {
+        setSelectedVideo(savedVideo);
+      }
+    }
+  }, [dare, dareType]);
 
   // Load existing reflection or draft if editing
   useEffect(() => {
@@ -140,17 +158,51 @@ export default function CompleteDare() {
     }
   };
 
-  const handleComplete = () => {
+  const recordVideo = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.8,
+      videoMaxDuration: 60, // 60 seconds max
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedVideo(result.assets[0].uri);
+    }
+  };
+
+  const chooseVideoFromLibrary = async () => {
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedVideo(result.assets[0].uri);
+    }
+  };
+
+  const handleComplete = async () => {
     if (dareType === "photo" && selectedImage) {
-      markDareComplete(dare, { imageUri: selectedImage });
+      await markDareComplete(dare, { imageUri: selectedImage });
+    } else if (dareType === "video" && selectedVideo) {
+      await markDareComplete(dare, { videoUri: selectedVideo });
     } else if (dareType === "text" && reflectionText.trim()) {
-      markDareComplete(dare, { reflectionText: reflectionText.trim() });
+      await markDareComplete(dare, { reflectionText: reflectionText.trim() });
     }
     setIsCompleted(true);
   };
 
   const handleRetake = () => {
     setSelectedImage(null);
+    setSelectedVideo(null);
   };
 
   const handleClearText = () => {
@@ -190,6 +242,7 @@ export default function CompleteDare() {
   const handleConfirmDeletion = () => {
     deleteDare(dare);
     setSelectedImage(null);
+    setSelectedVideo(null);
     setReflectionText("");
     setIsCompleted(false);
     setShowDeleteConfirmation(false);
@@ -202,7 +255,11 @@ export default function CompleteDare() {
   };
 
   const canComplete =
-    dareType === "photo" ? !!selectedImage : reflectionText.trim().length > 0;
+    dareType === "photo"
+      ? !!selectedImage
+      : dareType === "video"
+        ? !!selectedVideo
+        : reflectionText.trim().length > 0;
 
   if (isCompleted) {
     return (
@@ -252,6 +309,22 @@ export default function CompleteDare() {
                     />
                   </View>
                 )}
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show video icon for video dares */}
+            {dareType === "video" && selectedVideo && (
+              <View style={styles.thumbnailContainer}>
+                <View style={styles.videoIconContainer}>
+                  <Ionicons name="videocam" size={48} color={Colors.primary[500]} />
+                </View>
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -447,6 +520,62 @@ export default function CompleteDare() {
                     <TouchableOpacity
                       style={styles.photoButton}
                       onPress={chooseFromLibrary}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>
+                        Choose from{"\n"}Camera Roll!
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Video Dare Flow */}
+            {dareType === "video" && (
+              <>
+                {selectedVideo ? (
+                  <View style={styles.imagePreview}>
+                    <Text style={styles.videoPreviewText}>Video Selected</Text>
+                    <Text style={styles.videoPreviewSubtext}>
+                      Ready to complete your dare!
+                    </Text>
+
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>Complete</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.retakeButton}
+                        onPress={handleRetake}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonTextDark}>
+                          {selectedVideo.includes("camera")
+                            ? "Retake"
+                            : "Reselect"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.photoOptions}>
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={recordVideo}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>Record a video!</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={chooseVideoFromLibrary}
                       activeOpacity={0.8}
                     >
                       <Text style={styles.photoButtonText}>
@@ -750,6 +879,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
+  },
+  videoIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: Colors.white,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoPreviewText: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  videoPreviewSubtext: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[600],
+    textAlign: "center",
+    marginBottom: 20,
   },
   pencilButton: {
     position: "absolute",

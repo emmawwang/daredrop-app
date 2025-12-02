@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   View,
   Text,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Share2,
@@ -30,7 +32,7 @@ export default function DareDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const dareText = params.dare as string;
-  const { getDareImage, getDareReflection, getDareDate, deleteDare } =
+  const { getDareImage, getDareVideo, getDareReflection, getDareDate, deleteDare } =
     useDare();
 
   // Get dare type
@@ -38,8 +40,48 @@ export default function DareDetail() {
   const dareType = dareInfo?.type || "photo";
 
   const imageUri = getDareImage(dareText);
+  const videoPath = getDareVideo(dareText);
   const reflectionText = getDareReflection(dareText);
   const dareDate = getDareDate(dareText);
+  const videoRef = useRef<Video>(null);
+  const [videoUri, setVideoUri] = useState<string | undefined>(undefined);
+
+  // Get signed URL for video if it's stored in Supabase Storage
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      if (!videoPath) {
+        setVideoUri(undefined);
+        return;
+      }
+
+      // If it's already a full URL, use it directly
+      if (videoPath.startsWith("http://") || videoPath.startsWith("https://")) {
+        setVideoUri(videoPath);
+        return;
+      }
+
+      // If it's a storage path, get a signed URL
+      if (videoPath.startsWith("dare-videos/")) {
+        const path = videoPath.replace("dare-videos/", "");
+        const { data, error } = await supabase.storage
+          .from("dare-videos")
+          .createSignedUrl(path, 3600); // 1 hour expiry
+
+        if (error || !data) {
+          console.error("Error getting signed URL:", error);
+          setVideoUri(undefined);
+          return;
+        }
+
+        setVideoUri(data.signedUrl);
+      } else {
+        // Local file path
+        setVideoUri(videoPath);
+      }
+    };
+
+    getSignedUrl();
+  }, [videoPath]);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -93,6 +135,7 @@ export default function DareDetail() {
         dare: dareText,
         completed: "true",
         imageUri: imageUri,
+        videoUri: videoUri,
         reflectionText: reflectionText,
       },
     });
@@ -168,12 +211,33 @@ export default function DareDetail() {
             <Text style={styles.dareText}>{dareText}</Text>
           </View>
 
-          {/* Content Display - Photo or Text Reflection */}
+          {/* Content Display - Photo, Video, or Text Reflection */}
           {dareType === "photo" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Creation</Text>
               <View style={styles.imageWrapper}>
                 <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={18} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : dareType === "video" && videoUri ? (
+            <View style={styles.videoContainer}>
+              <Text style={styles.sectionLabel}>Your Creation</Text>
+              <View style={styles.videoWrapper}>
+                <Video
+                  ref={videoRef}
+                  source={{ uri: videoUri }}
+                  style={styles.dareVideo}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                  isLooping={false}
+                />
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -203,12 +267,14 @@ export default function DareDetail() {
           ) : (
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
-                {dareType === "photo" ? "📸" : "✍️"}
+                {dareType === "photo" ? "📸" : dareType === "video" ? "🎥" : "✍️"}
               </Text>
               <Text style={styles.noContentText}>
                 {dareType === "photo"
                   ? "No photo added for this dare"
-                  : "No reflection added for this dare"}
+                  : dareType === "video"
+                    ? "No video added for this dare"
+                    : "No reflection added for this dare"}
               </Text>
             </View>
           )}
@@ -401,6 +467,21 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 3,
     borderColor: Colors.primary[500],
+    ...Shadows.large,
+  },
+  videoContainer: {
+    marginBottom: 24,
+  },
+  videoWrapper: {
+    position: "relative",
+  },
+  dareVideo: {
+    width: "100%",
+    height: 350,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 3,
+    borderColor: Colors.primary[500],
+    backgroundColor: Colors.black,
     ...Shadows.large,
   },
   pencilButton: {
