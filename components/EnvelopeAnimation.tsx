@@ -157,7 +157,7 @@ export default function EnvelopeAnimation({
       },
     ],
     opacity: envelopeOpacity,
-    backfaceVisibility: 'hidden' as const,
+    backfaceVisibility: "hidden" as const,
   };
 
   const cardAnimatedStyle = {

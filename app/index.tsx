@@ -14,7 +14,7 @@ import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, FontSizes, Fonts } from "@/constants/theme";
-import { getRandomDare } from "@/constants/dares";
+import { getRandomDare, Dare } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -22,10 +22,10 @@ export default function Home() {
   const router = useRouter();
   const { profile } = useAuth();
   // For now, pick a random dare. Later this will be daily-based
-  const [currentDare, setCurrentDare] = useState(() => getRandomDare());
+  const [currentDare, setCurrentDare] = useState<Dare>(() => getRandomDare());
 
   const handleChooseNewDare = () => {
-    const newDare = getRandomDare(currentDare);
+    const newDare = getRandomDare(currentDare.text);
     setCurrentDare(newDare);
   };
 
@@ -75,10 +75,10 @@ export default function Home() {
           {/* Today's Dare Section */}
           <View style={styles.dareSection}>
             <Text style={styles.dareSectionTitle}>Your Dare Today:</Text>
-            <EnvelopeAnimation 
-              key={currentDare} 
-              dare={currentDare} 
-              onChooseNewDare={handleChooseNewDare} 
+            <EnvelopeAnimation
+              key={currentDare.text}
+              dare={currentDare.text}
+              onChooseNewDare={handleChooseNewDare}
             />
           </View>
 

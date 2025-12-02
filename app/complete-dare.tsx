@@ -8,14 +8,18 @@ import {
   Alert,
   ScrollView,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
-import { Pencil } from "lucide-react-native";
+import { Pencil, FileText } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
+import { getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 export default function CompleteDare() {
@@ -24,11 +28,25 @@ export default function CompleteDare() {
   const dare = params.dare as string;
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
+  const existingReflection = params.reflectionText as string | undefined;
 
-  const { markDareComplete, deleteDare, setHighlightedDare } = useDare();
+  const {
+    markDareComplete,
+    deleteDare,
+    setHighlightedDare,
+    getDareReflection,
+  } = useDare();
+
+  // Get dare type from constants
+  const dareInfo = getDareByText(dare);
+  const dareType = dareInfo?.type || "photo";
+  const placeholder = dareInfo?.placeholder || "Share your thoughts...";
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
+  );
+  const [reflectionText, setReflectionText] = useState<string>(
+    existingReflection || ""
   );
   const [isCompleted, setIsCompleted] = useState(alreadyCompleted);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -37,11 +55,26 @@ export default function CompleteDare() {
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
-    if (alreadyCompleted && existingImage) {
-      setSelectedImage(existingImage);
+    if (alreadyCompleted) {
+      if (existingImage) {
+        setSelectedImage(existingImage);
+      }
+      if (existingReflection) {
+        setReflectionText(existingReflection);
+      }
       setIsCompleted(true);
     }
-  }, [alreadyCompleted, existingImage]);
+  }, [alreadyCompleted, existingImage, existingReflection]);
+
+  // Load existing reflection if editing
+  useEffect(() => {
+    if (dareType === "text" && !existingReflection) {
+      const savedReflection = getDareReflection(dare);
+      if (savedReflection) {
+        setReflectionText(savedReflection);
+      }
+    }
+  }, [dare, dareType]);
 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -100,14 +133,20 @@ export default function CompleteDare() {
   };
 
   const handleComplete = () => {
-    if (selectedImage) {
-      markDareComplete(dare, selectedImage);
+    if (dareType === "photo" && selectedImage) {
+      markDareComplete(dare, { imageUri: selectedImage });
+    } else if (dareType === "text" && reflectionText.trim()) {
+      markDareComplete(dare, { reflectionText: reflectionText.trim() });
     }
     setIsCompleted(true);
   };
 
   const handleRetake = () => {
     setSelectedImage(null);
+  };
+
+  const handleClearText = () => {
+    setReflectionText("");
   };
 
   const handleGoHome = () => {
@@ -121,7 +160,7 @@ export default function CompleteDare() {
   const handleEditDare = () => {
     setShowEditModal(false);
     setIsCompleted(false);
-    // Keep the image so user can see it and decide to retake or keep it
+    // Keep the content so user can see it and decide to change or keep it
   };
 
   const handleDeleteDare = () => {
@@ -132,6 +171,7 @@ export default function CompleteDare() {
   const handleConfirmDeletion = () => {
     deleteDare(dare);
     setSelectedImage(null);
+    setReflectionText("");
     setIsCompleted(false);
     setShowDeleteConfirmation(false);
     setShowDeleteSuccess(true);
@@ -141,6 +181,9 @@ export default function CompleteDare() {
       router.back();
     }, 1500);
   };
+
+  const canComplete =
+    dareType === "photo" ? !!selectedImage : reflectionText.trim().length > 0;
 
   if (isCompleted) {
     return (
@@ -156,7 +199,8 @@ export default function CompleteDare() {
               on being creative, one day{"\n"}at a time!
             </Text>
 
-            {selectedImage && (
+            {/* Show thumbnail for photo dares */}
+            {dareType === "photo" && selectedImage && (
               <View style={styles.thumbnailContainer}>
                 <Image
                   source={{ uri: selectedImage }}
@@ -164,6 +208,23 @@ export default function CompleteDare() {
                 />
                 <TouchableOpacity
                   style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show text preview for text dares */}
+            {dareType === "text" && reflectionText && (
+              <View style={styles.reflectionPreviewContainer}>
+                <FileText color={Colors.white} size={24} />
+                <Text style={styles.reflectionPreviewText} numberOfLines={3}>
+                  "{reflectionText}"
+                </Text>
+                <TouchableOpacity
+                  style={styles.pencilButtonText}
                   activeOpacity={0.7}
                   onPress={() => setShowEditModal(true)}
                 >
@@ -285,79 +346,137 @@ export default function CompleteDare() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
 
-          {/* Home Button */}
-          <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
-            <Ionicons name="home" size={24} color={Colors.primary[500]} />
-          </TopRightButton>
+            {/* Home Button */}
+            <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
+              <Ionicons name="home" size={24} color={Colors.primary[500]} />
+            </TopRightButton>
 
-          {/* Dare Card */}
-          <View style={styles.dareCard}>
-            <Text style={styles.dareTitle}>Your Dare Today:</Text>
-            <Text style={styles.dareText}>{dare}</Text>
-          </View>
-
-          {/* Selected Image or Action Buttons */}
-          {selectedImage ? (
-            <View style={styles.imagePreview}>
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.previewImage}
-              />
-
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.completeButton}
-                  onPress={handleComplete}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonText}>complete</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.retakeButton}
-                  onPress={handleRetake}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonTextDark}>
-                    {selectedImage.includes("camera") ? "retake" : "reselect"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            {/* Dare Card */}
+            <View style={styles.dareCard}>
+              <Text style={styles.dareTitle}>Your Dare Today:</Text>
+              <Text style={styles.dareText}>{dare}</Text>
             </View>
-          ) : (
-            <View style={styles.photoOptions}>
-              <TouchableOpacity
-                style={styles.photoButton}
-                onPress={takePhoto}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.photoButtonText}>Take a photo!</Text>
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.photoButton}
-                onPress={chooseFromLibrary}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.photoButtonText}>
-                  Choose from{"\n"}Camera Roll!
+            {/* Photo Dare Flow */}
+            {dareType === "photo" && (
+              <>
+                {selectedImage ? (
+                  <View style={styles.imagePreview}>
+                    <Image
+                      source={{ uri: selectedImage }}
+                      style={styles.previewImage}
+                    />
+
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>Complete</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.retakeButton}
+                        onPress={handleRetake}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonTextDark}>
+                          {selectedImage.includes("camera")
+                            ? "retake"
+                            : "reselect"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.photoOptions}>
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={takePhoto}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>Take a photo!</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={chooseFromLibrary}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>
+                        Choose from{"\n"}Camera Roll!
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Text Dare Flow */}
+            {dareType === "text" && (
+              <View style={styles.textInputContainer}>
+                <Text style={styles.reflectionLabel}>Your Reflection:</Text>
+                <TextInput
+                  style={styles.textInput}
+                  multiline
+                  placeholder={placeholder}
+                  placeholderTextColor={Colors.gray[400]}
+                  value={reflectionText}
+                  onChangeText={setReflectionText}
+                  textAlignVertical="top"
+                />
+
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.completeButton,
+                      !canComplete && styles.completeButtonDisabled,
+                    ]}
+                    onPress={handleComplete}
+                    activeOpacity={0.8}
+                    disabled={!canComplete}
+                  >
+                    <Text style={styles.buttonText}>Complete</Text>
+                  </TouchableOpacity>
+
+                  {reflectionText.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.retakeButton}
+                      onPress={handleClearText}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.buttonTextDark}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <Text style={styles.characterCount}>
+                  {reflectionText.length} characters
                 </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -408,7 +527,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary[500],
     padding: 24,
     marginTop: 100,
-    marginBottom: 50,
+    marginBottom: 30,
   },
   dareTitle: {
     fontSize: 24,
@@ -471,6 +590,10 @@ const styles = StyleSheet.create({
     width: "80%",
     alignItems: "center",
   },
+  completeButtonDisabled: {
+    backgroundColor: Colors.gray[300],
+    borderColor: Colors.gray[300],
+  },
   retakeButton: {
     backgroundColor: "transparent",
     paddingVertical: 16,
@@ -491,6 +614,37 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.secondary[500],
   },
+  // Text Input Styles
+  textInputContainer: {
+    flex: 1,
+    gap: 16,
+  },
+  reflectionLabel: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    marginBottom: 4,
+  },
+  textInput: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    padding: 16,
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    minHeight: 200,
+    ...Shadows.medium,
+  },
+  characterCount: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[500],
+    textAlign: "right",
+    marginTop: -8,
+  },
+  // Congrats Screen Styles
   congratsCard: {
     backgroundColor: Colors.secondary[500],
     borderRadius: BorderRadius.xxl,
@@ -538,6 +692,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 2,
     borderColor: Colors.white,
+    ...Shadows.small,
+  },
+  // Reflection preview on congrats screen
+  reflectionPreviewContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: BorderRadius.lg,
+    padding: 16,
+    marginBottom: 20,
+    width: "100%",
+    position: "relative",
+    alignItems: "center",
+    gap: 8,
+  },
+  reflectionPreviewText: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.white,
+    textAlign: "center",
+    fontStyle: "italic",
+    lineHeight: 20,
+  },
+  pencilButtonText: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.accent.yellow,
+    alignItems: "center",
+    justifyContent: "center",
     ...Shadows.small,
   },
   pencilIcon: {
