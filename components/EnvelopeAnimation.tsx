@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,9 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withSequence,
-  withDelay,
-  Easing,
-} from "react-native-reanimated";
 import { Colors, Shadows, BorderRadius, Fonts } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
 
@@ -43,21 +35,21 @@ export default function EnvelopeAnimation({
   const isCompleted = isDareCompleted(dare);
   const dareImage = getDareImage(dare);
 
-  // Shared values for animations
-  const flapRotation = useSharedValue(0);
-  const cardTranslateY = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const sealScale = useSharedValue(1);
-  const envelopeOpacity = useSharedValue(1);
+  // Animated values for animations
+  const flapRotation = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const sealScale = useRef(new Animated.Value(1)).current;
+  const envelopeOpacity = useRef(new Animated.Value(1)).current;
 
   // Reset envelope when component mounts or when dare changes
   useEffect(() => {
     setIsOpen(false);
-    flapRotation.value = 0;
-    cardTranslateY.value = 0;
-    cardOpacity.value = 0;
-    sealScale.value = 1;
-    envelopeOpacity.value = 1;
+    flapRotation.setValue(0);
+    cardTranslateY.setValue(0);
+    cardOpacity.setValue(0);
+    sealScale.setValue(1);
+    envelopeOpacity.setValue(1);
   }, [dare, resetKey]);
 
   const openEnvelope = () => {
@@ -65,72 +57,73 @@ export default function EnvelopeAnimation({
     setIsOpen(true);
 
     // Seal shrinks first
-    sealScale.value = withTiming(0, {
+    Animated.timing(sealScale, {
+      toValue: 0,
       duration: 300,
-      easing: Easing.ease,
-    });
+      useNativeDriver: true,
+    }).start();
 
     // Flap rotates open, then closes after card slides out
-    flapRotation.value = withDelay(
-      200,
-      withSequence(
-        // Open the flap
-        withTiming(180, {
-          duration: 800,
-          easing: Easing.ease,
-        }),
-        // Keep it open briefly while card slides
-        withDelay(400, withTiming(180, { duration: 0 })),
-        // Close the flap back
-        withTiming(0, {
-          duration: 600,
-          easing: Easing.ease,
-        })
-      )
-    );
+    Animated.sequence([
+      Animated.delay(200),
+      Animated.timing(flapRotation, {
+        toValue: 180,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.delay(400),
+      Animated.timing(flapRotation, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Envelope fades then returns to full opacity
-    envelopeOpacity.value = withDelay(
-      600,
-      withSequence(
-        withTiming(0.3, {
-          duration: 400,
-        }),
-        withDelay(400, withTiming(0.3, { duration: 0 })),
-        withTiming(1, {
-          duration: 400,
-        })
-      )
-    );
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.timing(envelopeOpacity, {
+        toValue: 0.3,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.delay(400),
+      Animated.timing(envelopeOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Card slides out and fades in
-    cardTranslateY.value = withDelay(
-      600,
-      withSpring(-70, {
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.spring(cardTranslateY, {
+        toValue: -70,
         damping: 15,
         stiffness: 100,
-      })
-    );
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-    cardOpacity.value = withDelay(
-      600,
-      withTiming(1, {
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.timing(cardOpacity, {
+        toValue: 1,
         duration: 600,
-      })
-    );
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Seal comes back after flap closes
-    sealScale.value = withSequence(
-      withTiming(0, {
-        duration: 300,
-        easing: Easing.ease,
-      }),
-      withDelay(1900, withTiming(0, { duration: 0 })),
-      withTiming(1, {
+    Animated.sequence([
+      Animated.delay(2200),
+      Animated.timing(sealScale, {
+        toValue: 1,
         duration: 400,
-        easing: Easing.ease,
-      })
-    );
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handleComplete = () => {
@@ -150,34 +143,31 @@ export default function EnvelopeAnimation({
   };
 
   // Animated styles
-  const flapAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { perspective: 1000 },
-        { rotateX: `${flapRotation.value}deg` },
-      ],
-      opacity: envelopeOpacity.value,
-    };
-  });
+  const flapAnimatedStyle = {
+    transform: [
+      { perspective: 1000 },
+      {
+        rotateX: flapRotation.interpolate({
+          inputRange: [0, 180],
+          outputRange: ["0deg", "180deg"],
+        }),
+      },
+    ],
+    opacity: envelopeOpacity,
+  };
 
-  const cardAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: cardTranslateY.value }],
-      opacity: cardOpacity.value,
-    };
-  });
+  const cardAnimatedStyle = {
+    transform: [{ translateY: cardTranslateY }],
+    opacity: cardOpacity,
+  };
 
-  const sealAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: sealScale.value }],
-    };
-  });
+  const sealAnimatedStyle = {
+    transform: [{ scale: sealScale }],
+  };
 
-  const envelopeAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: envelopeOpacity.value,
-    };
-  });
+  const envelopeAnimatedStyle = {
+    opacity: envelopeOpacity,
+  };
 
   return (
     <View style={styles.container}>

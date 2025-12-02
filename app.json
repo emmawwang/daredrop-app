@@ -4,12 +4,12 @@
     "slug": "daredrop-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ef4444"
+      "backgroundColor": "#F3EAE3"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -22,8 +22,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ef4444"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#F3EAE3"
       },
       "package": "com.daredrop.app",
       "permissions": [
@@ -33,7 +33,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/logo.png",
       "bundler": "metro"
     },
     "scheme": "daredrop",
