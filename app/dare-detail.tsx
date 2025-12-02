@@ -93,7 +93,7 @@ export default function DareDetail() {
       pathname: "/complete-dare",
       params: {
         dare: dareText,
-        completed: "true",
+        completed: "false",
         imageUri: imageUri,
         reflectionText: reflectionText,
       },
