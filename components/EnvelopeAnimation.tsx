@@ -31,11 +31,12 @@ export default function EnvelopeAnimation({
   onChooseNewDare,
 }: EnvelopeAnimationProps) {
   const router = useRouter();
-  const { isDareCompleted, getDareImage } = useDare();
+  const { isDareCompleted, isDareInProgress, getDareImage } = useDare();
   const [isOpen, setIsOpen] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
+  const [displayedDare, setDisplayedDare] = useState(dare);
 
   const isCompleted = isDareCompleted(dare);
+  const isInProgress = isDareInProgress(dare);
   const dareImage = getDareImage(dare);
 
   // Animated values for animations
@@ -44,16 +45,29 @@ export default function EnvelopeAnimation({
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const sealScale = useRef(new Animated.Value(1)).current;
   const envelopeOpacity = useRef(new Animated.Value(1)).current;
+  const cardScale = useRef(new Animated.Value(1)).current;
 
-  // Reset envelope when component mounts or when dare changes
+  // Update displayed dare with a nice animation when dare changes while open
   useEffect(() => {
-    setIsOpen(false);
-    flapRotation.setValue(0);
-    cardTranslateY.setValue(0);
-    cardOpacity.setValue(0);
-    sealScale.setValue(1);
-    envelopeOpacity.setValue(1);
-  }, [dare, resetKey]);
+    if (isOpen && dare !== displayedDare) {
+      // Animate card scale down, change text, scale back up
+      Animated.sequence([
+        Animated.timing(cardScale, {
+          toValue: 0.95,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardScale, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      setDisplayedDare(dare);
+    } else if (!isOpen) {
+      setDisplayedDare(dare);
+    }
+  }, [dare, isOpen, displayedDare]);
 
   const openEnvelope = () => {
     if (isOpen) return;
@@ -161,7 +175,7 @@ export default function EnvelopeAnimation({
   };
 
   const cardAnimatedStyle = {
-    transform: [{ translateY: cardTranslateY }],
+    transform: [{ translateY: cardTranslateY }, { scale: cardScale }],
     opacity: cardOpacity,
   };
 
@@ -212,11 +226,17 @@ export default function EnvelopeAnimation({
             style={[styles.card, cardAnimatedStyle]}
             pointerEvents={isOpen ? "auto" : "none"}
           >
-            <Text style={styles.dareText}>{dare}</Text>
+            <Text style={styles.dareText}>{displayedDare}</Text>
 
             {isCompleted && (
               <View style={styles.completedBadge}>
                 <Text style={styles.completedBadgeText}>✓ Completed!</Text>
+              </View>
+            )}
+
+            {isInProgress && !isCompleted && (
+              <View style={styles.inProgressBadge}>
+                <Text style={styles.inProgressBadgeText}>📝 In Progress</Text>
               </View>
             )}
 
@@ -236,7 +256,11 @@ export default function EnvelopeAnimation({
                       isCompleted && styles.viewDareButtonText,
                     ]}
                   >
-                    {isCompleted ? "View dare" : "Start"}
+                    {isCompleted
+                      ? "View dare"
+                      : isInProgress
+                      ? "Continue"
+                      : "Complete"}
                   </Text>
                 </TouchableOpacity>
 
@@ -403,6 +427,19 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary.medium,
     color: Colors.secondary[500],
     fontStyle: "italic",
+  },
+  inProgressBadge: {
+    marginTop: 12,
+    alignSelf: "flex-end",
+    backgroundColor: Colors.accent.yellow,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  inProgressBadgeText: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.medium,
+    color: Colors.primary[500],
   },
   buttonContainer: {
     marginTop: 16,

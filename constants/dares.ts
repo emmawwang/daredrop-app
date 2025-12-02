@@ -1,3 +1,5 @@
+import { ImageSourcePropType } from "react-native";
+
 // Dare types
 export type DareType = "photo" | "text";
 
@@ -7,6 +9,15 @@ export interface Dare {
   type: DareType;
   placeholder?: string; // For text dares, the placeholder text in the input
 }
+
+// Icon mapping for text dares (React Native requires static requires)
+export const textDareIcons: Record<string, ImageSourcePropType> = {
+  "Compliment a stranger and reflect on it": require("@/assets/dare-compliment..jpg"),
+  "Write a letter to your future self 5 years from now": require("@/assets/dare-letter.png.jpg"),
+  "Create a playlist of 5 songs that tell a story": require("@/assets/dare-playlist.jpg"),
+  "Write a 50-word story that ends with the word 'finally'": require("@/assets/dare-story.jpg"),
+  "Compose a haiku about your morning coffee": require("@/assets/dare-haiku.png.jpg"),
+};
 
 // Sample dares - these will later be fetched from an API or database
 export const sampleDares: Dare[] = [
@@ -88,4 +99,13 @@ export function getRandomDare(excludeDareText?: string): Dare {
  */
 export function getDareByText(dareText: string): Dare | undefined {
   return sampleDares.find((d) => d.text === dareText);
+}
+
+/**
+ * Get icon for a text dare
+ */
+export function getTextDareIcon(
+  dareText: string
+): ImageSourcePropType | undefined {
+  return textDareIcons[dareText];
 }

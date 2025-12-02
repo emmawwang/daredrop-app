@@ -17,12 +17,14 @@ import {
   FontSizes,
   Fonts,
 } from "@/constants/theme";
+import { getTextDareIcon } from "@/constants/dares";
 
 const { width } = Dimensions.get("window");
 
 interface DareHistoryItem {
   id: string;
   image?: string;
+  reflectionText?: string;
   completed: boolean;
 }
 
@@ -175,6 +177,13 @@ function DareCircle({
         >
           {dare.image ? (
             <Image source={{ uri: dare.image }} style={styles.dareImage} />
+          ) : dare.reflectionText && getTextDareIcon(dare.id) ? (
+            <Image
+              source={getTextDareIcon(dare.id)!}
+              style={styles.dareImage}
+            />
+          ) : dare.reflectionText ? (
+            <Text style={styles.darePlaceholder}>💬</Text>
           ) : (
             <Text style={styles.darePlaceholder}>📸</Text>
           )}
