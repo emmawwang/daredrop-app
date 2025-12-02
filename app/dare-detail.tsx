@@ -16,18 +16,31 @@ import { isVideoFile } from "@/lib/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Share2, Calendar, Sparkles, Pencil } from "lucide-react-native";
+import {
+  Share2,
+  Calendar,
+  Sparkles,
+  Pencil,
+  FileText,
+} from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
+import { getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 export default function DareDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const dareText = params.dare as string;
-  const { getDareImage, getDareDate, deleteDare } = useDare();
+  const { getDareImage, getDareReflection, getDareDate, deleteDare } =
+    useDare();
+
+  // Get dare type
+  const dareInfo = getDareByText(dareText);
+  const dareType = dareInfo?.type || "photo";
 
   const imageUri = getDareImage(dareText);
+  const reflectionText = getDareReflection(dareText);
   const dareDate = getDareDate(dareText);
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -36,7 +49,13 @@ export default function DareDetail() {
 
   const handleShare = async () => {
     try {
-      const message = `I completed a DareDrop dare! 🎨\n\n"${dareText}"\n\nJoin me in being creative every day with DareDrop!`;
+      let message = `I completed a DareDrop dare! 🎨\n\n"${dareText}"`;
+
+      if (reflectionText) {
+        message += `\n\nMy reflection:\n"${reflectionText}"`;
+      }
+
+      message += `\n\nJoin me in being creative every day with DareDrop!`;
 
       const result = await Share.share(
         {
@@ -72,7 +91,12 @@ export default function DareDetail() {
     // Navigate to complete dare screen to re-edit
     router.push({
       pathname: "/complete-dare",
-      params: { dare: dareText, completed: "true", imageUri: imageUri },
+      params: {
+        dare: dareText,
+        completed: "true",
+        imageUri: imageUri,
+        reflectionText: reflectionText,
+      },
     });
   };
 
@@ -111,6 +135,8 @@ export default function DareDetail() {
     });
   };
 
+  const hasContent = imageUri || reflectionText;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
@@ -144,8 +170,8 @@ export default function DareDetail() {
             <Text style={styles.dareText}>{dareText}</Text>
           </View>
 
-          {/* Image Display */}
-          {imageUri ? (
+          {/* Content Display - Photo or Text Reflection */}
+          {dareType === "photo" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Creation</Text>
               <View style={styles.imageWrapper}>
@@ -169,11 +195,32 @@ export default function DareDetail() {
                 </TouchableOpacity>
               </View>
             </View>
+          ) : dareType === "text" && reflectionText ? (
+            <View style={styles.reflectionContainer}>
+              <Text style={styles.sectionLabel}>Your Reflection</Text>
+              <View style={styles.reflectionWrapper}>
+                <View style={styles.reflectionHeader}>
+                  <FileText color={Colors.primary[500]} size={24} />
+                </View>
+                <Text style={styles.reflectionText}>{reflectionText}</Text>
+                <TouchableOpacity
+                  style={styles.pencilButtonReflection}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={18} />
+                </TouchableOpacity>
+              </View>
+            </View>
           ) : (
-            <View style={styles.noImageContainer}>
-              <Text style={styles.noImageEmoji}>📸</Text>
-              <Text style={styles.noImageText}>
-                No photo added for this dare
+            <View style={styles.noContentContainer}>
+              <Text style={styles.noContentEmoji}>
+                {dareType === "photo" ? "📸" : "✍️"}
+              </Text>
+              <Text style={styles.noContentText}>
+                {dareType === "photo"
+                  ? "No photo added for this dare"
+                  : "No reflection added for this dare"}
               </Text>
             </View>
           )}
@@ -382,7 +429,45 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
     ...Shadows.medium,
   },
-  noImageContainer: {
+  // Reflection styles
+  reflectionContainer: {
+    marginBottom: 24,
+  },
+  reflectionWrapper: {
+    position: "relative",
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: Colors.primary[500],
+    ...Shadows.large,
+  },
+  reflectionHeader: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  reflectionText: {
+    fontSize: 18,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    lineHeight: 28,
+    fontStyle: "italic",
+  },
+  pencilButtonReflection: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.accent.yellow,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.white,
+    ...Shadows.medium,
+  },
+  noContentContainer: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     padding: 40,
@@ -392,11 +477,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[300],
     borderStyle: "dashed",
   },
-  noImageEmoji: {
+  noContentEmoji: {
     fontSize: 48,
     marginBottom: 12,
   },
-  noImageText: {
+  noContentText: {
     fontSize: 16,
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[500],

@@ -11,10 +11,12 @@ import {
 import { useRouter } from "expo-router";
 import { Colors, Shadows, BorderRadius, Fonts } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
+import { RefreshCw } from "lucide-react-native";
 
 interface EnvelopeAnimationProps {
   dare: string;
   onComplete?: () => void;
+  onChooseNewDare?: () => void;
 }
 
 const { width } = Dimensions.get("window");
@@ -26,6 +28,7 @@ const CARD_HEIGHT = 200;
 export default function EnvelopeAnimation({
   dare,
   onComplete,
+  onChooseNewDare,
 }: EnvelopeAnimationProps) {
   const router = useRouter();
   const { isDareCompleted, getDareImage } = useDare();
@@ -154,6 +157,7 @@ export default function EnvelopeAnimation({
       },
     ],
     opacity: envelopeOpacity,
+    backfaceVisibility: "hidden" as const,
   };
 
   const cardAnimatedStyle = {
@@ -217,23 +221,36 @@ export default function EnvelopeAnimation({
             )}
 
             {isOpen && (
-              <TouchableOpacity
-                style={[
-                  styles.completeButton,
-                  isCompleted && styles.viewDareButton,
-                ]}
-                onPress={handleComplete}
-                activeOpacity={0.7}
-              >
-                <Text
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
                   style={[
-                    styles.completeButtonText,
-                    isCompleted && styles.viewDareButtonText,
+                    styles.completeButton,
+                    isCompleted && styles.viewDareButton,
                   ]}
+                  onPress={handleComplete}
+                  activeOpacity={0.7}
                 >
-                  {isCompleted ? "View dare" : "Start"}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.completeButtonText,
+                      isCompleted && styles.viewDareButtonText,
+                    ]}
+                  >
+                    {isCompleted ? "View dare" : "Start"}
+                  </Text>
+                </TouchableOpacity>
+
+                {onChooseNewDare && (
+                  <TouchableOpacity
+                    style={styles.newDareButton}
+                    onPress={onChooseNewDare}
+                    activeOpacity={0.7}
+                  >
+                    <RefreshCw size={16} color={Colors.secondary[500]} />
+                    <Text style={styles.newDareButtonText}>Choose another</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </Animated.View>
         </View>
@@ -387,8 +404,12 @@ const styles = StyleSheet.create({
     color: Colors.secondary[500],
     fontStyle: "italic",
   },
-  completeButton: {
+  buttonContainer: {
     marginTop: 16,
+    alignItems: "center",
+    gap: 10,
+  },
+  completeButton: {
     backgroundColor: Colors.primary[500],
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -406,5 +427,17 @@ const styles = StyleSheet.create({
   },
   viewDareButtonText: {
     color: Colors.white,
+  },
+  newDareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  newDareButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.medium,
+    color: Colors.secondary[500],
   },
 });

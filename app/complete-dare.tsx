@@ -8,6 +8,9 @@ import {
   Alert,
   ScrollView,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -15,9 +18,10 @@ import * as ImagePicker from "expo-image-picker";
 import { isVideoFile } from "@/lib/storage";
 import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
-import { Pencil } from "lucide-react-native";
+import { Pencil, FileText } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
+import { getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 export default function CompleteDare() {
@@ -26,11 +30,25 @@ export default function CompleteDare() {
   const dare = params.dare as string;
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
+  const existingReflection = params.reflectionText as string | undefined;
 
-  const { markDareComplete, deleteDare, setHighlightedDare } = useDare();
+  const {
+    markDareComplete,
+    deleteDare,
+    setHighlightedDare,
+    getDareReflection,
+  } = useDare();
+
+  // Get dare type from constants
+  const dareInfo = getDareByText(dare);
+  const dareType = dareInfo?.type || "photo";
+  const placeholder = dareInfo?.placeholder || "Share your thoughts...";
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
+  );
+  const [reflectionText, setReflectionText] = useState<string>(
+    existingReflection || ""
   );
   const [isCompleted, setIsCompleted] = useState(alreadyCompleted);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -39,11 +57,26 @@ export default function CompleteDare() {
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
-    if (alreadyCompleted && existingImage) {
-      setSelectedImage(existingImage);
+    if (alreadyCompleted) {
+      if (existingImage) {
+        setSelectedImage(existingImage);
+      }
+      if (existingReflection) {
+        setReflectionText(existingReflection);
+      }
       setIsCompleted(true);
     }
-  }, [alreadyCompleted, existingImage]);
+  }, [alreadyCompleted, existingImage, existingReflection]);
+
+  // Load existing reflection if editing
+  useEffect(() => {
+    if (dareType === "text" && !existingReflection) {
+      const savedReflection = getDareReflection(dare);
+      if (savedReflection) {
+        setReflectionText(savedReflection);
+      }
+    }
+  }, [dare, dareType]);
 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -74,11 +107,10 @@ export default function CompleteDare() {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images", "videos"], // Allow both photos and videos
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
-      videoMaxDuration: 30, // Limit videos to 30 seconds
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -91,11 +123,10 @@ export default function CompleteDare() {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"], // Allow both images and videos
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
-      videoMaxDuration: 30, // Limit videos to 30 seconds
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -104,8 +135,10 @@ export default function CompleteDare() {
   };
 
   const handleComplete = () => {
-    if (selectedImage) {
-      markDareComplete(dare, selectedImage);
+    if (dareType === "photo" && selectedImage) {
+      markDareComplete(dare, { imageUri: selectedImage });
+    } else if (dareType === "text" && reflectionText.trim()) {
+      markDareComplete(dare, { reflectionText: reflectionText.trim() });
     }
     setIsCompleted(true);
   };
@@ -125,7 +158,7 @@ export default function CompleteDare() {
   const handleEditDare = () => {
     setShowEditModal(false);
     setIsCompleted(false);
-    // Keep the image so user can see it and decide to retake or keep it
+    // Keep the image/reflection so user can see it and decide to retake/reedit or keep it
   };
 
   const handleDeleteDare = () => {
@@ -160,7 +193,8 @@ export default function CompleteDare() {
               on being creative, one day{"\n"}at a time!
             </Text>
 
-            {selectedImage && (
+            {/* Show thumbnail for photo dares */}
+            {dareType === "photo" && selectedImage && (
               <View style={styles.thumbnailContainer}>
                 {isVideoFile(selectedImage) ? (
                   <Video
@@ -176,6 +210,23 @@ export default function CompleteDare() {
                     style={styles.thumbnail}
                   />
                 )}
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show reflection preview for text dares */}
+            {dareType === "text" && reflectionText && (
+              <View style={styles.reflectionPreviewContainer}>
+                <FileText color={Colors.primary[500]} size={48} />
+                <Text style={styles.reflectionPreviewText} numberOfLines={3}>
+                  {reflectionText}
+                </Text>
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -299,89 +350,133 @@ export default function CompleteDare() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
 
-          {/* Home Button */}
-          <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
-            <Ionicons name="home" size={24} color={Colors.primary[500]} />
-          </TopRightButton>
+            {/* Home Button */}
+            <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
+              <Ionicons name="home" size={24} color={Colors.primary[500]} />
+            </TopRightButton>
 
-          {/* Dare Card */}
-          <View style={styles.dareCard}>
-            <Text style={styles.dareTitle}>Your Dare Today:</Text>
-            <Text style={styles.dareText}>{dare}</Text>
-          </View>
+            {/* Dare Card */}
+            <View style={styles.dareCard}>
+              <Text style={styles.dareTitle}>Your Dare Today:</Text>
+              <Text style={styles.dareText}>{dare}</Text>
+            </View>
 
-          {/* Selected Image or Action Buttons */}
-          {selectedImage ? (
-            <View style={styles.imagePreview}>
-              {isVideoFile(selectedImage) ? (
-                <Video
-                  source={{ uri: selectedImage }}
-                  style={styles.previewImage}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  isLooping
+            {/* Photo Dare Flow */}
+            {dareType === "photo" && (
+              <>
+                {selectedImage ? (
+                  <View style={styles.imagePreview}>
+                    {isVideoFile(selectedImage) ? (
+                      <Video
+                        source={{ uri: selectedImage }}
+                        style={styles.previewImage}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        isLooping
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri: selectedImage }}
+                        style={styles.previewImage}
+                      />
+                    )}
+
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>complete</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.retakeButton}
+                        onPress={handleRetake}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonTextDark}>
+                          {selectedImage.includes("camera")
+                            ? "retake"
+                            : "reselect"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.photoOptions}>
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={takePhoto}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>Take a photo!</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={chooseFromLibrary}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>
+                        Choose from{"\n"}Camera Roll!
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Text Dare Flow */}
+            {dareType === "text" && (
+              <View style={styles.textInputContainer}>
+                <Text style={styles.reflectionLabel}>Your Reflection:</Text>
+                <TextInput
+                  style={styles.textInput}
+                  multiline
+                  placeholder={placeholder}
+                  placeholderTextColor={Colors.gray[400]}
+                  value={reflectionText}
+                  onChangeText={setReflectionText}
+                  textAlignVertical="top"
                 />
-              ) : (
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={styles.previewImage}
-                />
-              )}
 
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.completeButton}
-                  onPress={handleComplete}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonText}>complete</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.retakeButton}
-                  onPress={handleRetake}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.buttonTextDark}>
-                    {selectedImage.includes("camera") ? "retake" : "reselect"}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.completeButton,
+                      !reflectionText.trim() && styles.completeButtonDisabled,
+                    ]}
+                    onPress={handleComplete}
+                    activeOpacity={0.8}
+                    disabled={!reflectionText.trim()}
+                  >
+                    <Text style={styles.buttonText}>complete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ) : (
-            <View style={styles.photoOptions}>
-              <TouchableOpacity
-                style={styles.photoButton}
-                onPress={takePhoto}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.photoButtonText}>Take a photo!</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.photoButton}
-                onPress={chooseFromLibrary}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.photoButtonText}>
-                  Choose from{"\n"}Camera Roll!
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -651,5 +746,47 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary.bold,
     color: Colors.primary[500],
     textAlign: "center",
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  textInputContainer: {
+    flex: 1,
+    gap: 16,
+  },
+  reflectionLabel: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    marginBottom: 4,
+  },
+  textInput: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    padding: 16,
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    minHeight: 200,
+    ...Shadows.medium,
+  },
+  reflectionPreviewContainer: {
+    position: "relative",
+    marginBottom: 20,
+    alignItems: "center",
+    gap: 12,
+  },
+  reflectionPreviewText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.white,
+    textAlign: "center",
+    paddingHorizontal: 20,
+    maxWidth: 300,
+  },
+  completeButtonDisabled: {
+    opacity: 0.5,
   },
 });
