@@ -19,7 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import { isVideoFile } from "@/lib/storage";
 import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
-import { Pencil, FileText, MessageCircle } from "lucide-react-native";
+import { Pencil, FileText, MessageCircle, Share2, Sparkles } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText, getTextDareIcon } from "@/constants/dares";
@@ -413,18 +413,20 @@ export default function CompleteDare() {
             <TouchableOpacity
               style={styles.shareButton}
               onPress={handleShare}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={styles.shareButtonText}>Share your Dare!</Text>
+              <Share2 size={20} color={Colors.white} />
+              <Text style={styles.shareButtonText}>Share Your Dare</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sparkNote}
               onPress={() => router.push("/your-dares")}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
+              <Sparkles size={20} color={Colors.white} />
               <Text style={styles.sparkNoteText}>
-                See your past creative sparks!
+                View past sparks
               </Text>
             </TouchableOpacity>
           </View>
@@ -628,7 +630,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   dareCard: {
-    backgroundColor: Colors.accent.green,
+    backgroundColor: Colors.accent.yellow,
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: Colors.primary[500],
@@ -665,8 +667,8 @@ const styles = StyleSheet.create({
   },
   photoButtonText: {
     fontSize: 24,
-    fontFamily: Fonts.primary.regular,
-    color: Colors.accent.yellow,
+    fontFamily: Fonts.secondary.medium,
+    color: Colors.white,
     textAlign: "center",
     lineHeight: 32,
   },
@@ -740,7 +742,9 @@ const styles = StyleSheet.create({
     color: Colors.secondary[500],
   },
   congratsCard: {
-    backgroundColor: Colors.secondary[500],
+    backgroundColor: Colors.accent.yellow,
+    borderColor: Colors.primary[500],
+    borderWidth: 2,
     borderRadius: BorderRadius.xxl,
     padding: 32,
     width: "90%",
@@ -750,15 +754,15 @@ const styles = StyleSheet.create({
     ...Shadows.large,
   },
   congratsTitle: {
-    fontSize: 36,
-    fontFamily: Fonts.secondary.bold,
-    color: Colors.white,
+    fontSize: 45,
+    fontFamily: Fonts.primary.regular,
+    color: Colors.primary[500],
     marginBottom: 8,
   },
   congratsSubtitle: {
-    fontSize: 18,
-    fontFamily: Fonts.secondary.regular,
-    color: Colors.white,
+    fontSize: 25,
+    fontFamily: Fonts.primary.regular,
+    color: Colors.primary[500],
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 24,
@@ -772,7 +776,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: Colors.white,
+    borderColor: Colors.primary[500],
   },
   textDareIcon: {
     width: 120,
@@ -791,42 +795,49 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.accent.yellow,
+    backgroundColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: Colors.white,
+    borderColor: Colors.primary[500],
     ...Shadows.small,
   },
   pencilIcon: {
     fontSize: 16,
   },
   sparkNote: {
-    backgroundColor: Colors.accent.yellow,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.secondary[500],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: BorderRadius.xl,
+    marginBottom: 24,
+    ...Shadows.medium,
   },
   sparkNoteText: {
-    fontSize: 16,
-    fontFamily: Fonts.secondary.medium,
-    color: Colors.primary[500],
-    textAlign: "center",
-    lineHeight: 22,
+    fontSize: 18,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.white,
   },
   shareButton: {
-    backgroundColor: Colors.accent.yellow,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: BorderRadius.lg,
-    marginBottom: 12,
+    backgroundColor: Colors.secondary[500],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: BorderRadius.xl,
+    marginBottom: 24,
+    ...Shadows.medium,
   },
   shareButtonText: {
-    fontSize: 16,
-    fontFamily: Fonts.secondary.medium,
-    color: Colors.primary[500],
-    textAlign: "center",
-    lineHeight: 22,
+    fontSize: 18,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.white,
   },
   modalOverlay: {
     flex: 1,
