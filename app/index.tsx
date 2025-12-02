@@ -84,6 +84,7 @@ export default function Home() {
 
           {/* Dare History Section */}
           <TouchableOpacity
+            style={styles.dareHistorySection}
             activeOpacity={0.9}
             onPress={() => router.push("/your-dares")}
           >
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "flex-start",
     paddingHorizontal: 8,
-    marginTop: 40,
+    marginTop: 10,
     gap: 15,
   },
   headerLeft: {
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: "absolute",
-    top: 44,
+    top: 58,
     right: 20,
     zIndex: 10,
   },
@@ -137,6 +138,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
     lineHeight: 44,
+    marginBottom: 20,
   },
   dareSection: {
     width: "100%",
@@ -150,5 +152,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: "flex-start",
     paddingLeft: 8,
+  },
+  dareHistorySection: {
+    marginTop: 10,
   },
 });
