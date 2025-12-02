@@ -1,10 +1,19 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, Shadows } from "@/constants/theme";
+import { getTextDareIcon } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -13,7 +22,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const getScatteredPosition = (index: number, total: number) => {
   // Start from bottom of screen and work upwards
   const startFromBottom = SCREEN_HEIGHT - 200;
-  
+
   const positions = [
     { left: "8%", top: startFromBottom, size: 115, rotation: -8 },
     { left: "58%", top: startFromBottom - 30, size: 125, rotation: 5 },
@@ -28,12 +37,12 @@ const getScatteredPosition = (index: number, total: number) => {
     { left: "22%", top: startFromBottom - 830, size: 118, rotation: 6 },
     { left: "60%", top: startFromBottom - 860, size: 117, rotation: -4 },
   ];
-  
+
   // If we have more dares than predefined positions, continue the pattern
   if (index < positions.length) {
     return positions[index];
   }
-  
+
   // Generate more positions dynamically, continuing upwards
   const row = Math.floor(index / 2);
   const isLeft = index % 2 === 0;
@@ -56,6 +65,7 @@ export default function YourDares() {
       .map(([dare, data]) => ({
         id: dare,
         image: data.imageUri,
+        reflectionText: data.reflectionText,
         completed: data.completed,
       }));
   }, [completedDares]);
@@ -72,10 +82,7 @@ export default function YourDares() {
   return (
     <View style={styles.container}>
       {/* Home Button */}
-      <TopRightButton
-        style={styles.homeButton}
-        onPress={() => router.back()}
-      >
+      <TopRightButton style={styles.homeButton} onPress={() => router.back()}>
         <Ionicons name="home" size={24} color={Colors.primary[500]} />
       </TopRightButton>
 
@@ -84,12 +91,19 @@ export default function YourDares() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { minHeight: Math.max(SCREEN_HEIGHT, completedDaresList.length * 90 + 300) }
+          {
+            minHeight: Math.max(
+              SCREEN_HEIGHT,
+              completedDaresList.length * 90 + 300
+            ),
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Title */}
-        <Text style={styles.title}>Your{"\n"}Past{"\n"}Dares</Text>
+        <Text style={styles.title}>
+          Your{"\n"}Past{"\n"}Dares
+        </Text>
 
         {/* Empty State */}
         {completedDaresList.length === 0 && (
@@ -102,7 +116,10 @@ export default function YourDares() {
 
         {/* Scattered Dares */}
         {completedDaresList.map((dare, index) => {
-          const position = getScatteredPosition(index, completedDaresList.length);
+          const position = getScatteredPosition(
+            index,
+            completedDaresList.length
+          );
           return (
             <TouchableOpacity
               key={dare.id}
@@ -122,10 +139,25 @@ export default function YourDares() {
               <View style={styles.circleOuter}>
                 <View style={styles.circleInner}>
                   {dare.image ? (
-                    <Image source={{ uri: dare.image }} style={styles.dareImage} />
+                    <Image
+                      source={{ uri: dare.image }}
+                      style={styles.dareImage}
+                    />
+                  ) : dare.reflectionText && getTextDareIcon(dare.id) ? (
+                    <Image
+                      source={getTextDareIcon(dare.id)!}
+                      style={styles.dareImage}
+                    />
                   ) : (
-                    <View style={[styles.placeholder, { backgroundColor: getPlaceholderColor(index) }]}>
-                      <Text style={styles.placeholderEmoji}>📸</Text>
+                    <View
+                      style={[
+                        styles.placeholder,
+                        { backgroundColor: getPlaceholderColor(index) },
+                      ]}
+                    >
+                      <Text style={styles.placeholderEmoji}>
+                        {dare.reflectionText ? "💬" : "📸"}
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -141,7 +173,12 @@ export default function YourDares() {
 // Helper function for varied placeholder colors
 function getPlaceholderColor(index: number): string {
   const colors = [
-    "#FFB3BA", "#BAFFC9", "#BAE1FF", "#FFFFBA", "#FFD9BA", "#E0BBE4",
+    "#FFB3BA",
+    "#BAFFC9",
+    "#BAE1FF",
+    "#FFFFBA",
+    "#FFD9BA",
+    "#E0BBE4",
   ];
   return colors[index % colors.length];
 }
@@ -222,4 +259,3 @@ const styles = StyleSheet.create({
     fontSize: 40,
   },
 });
-
