@@ -135,7 +135,7 @@ export default function CompleteDare() {
     setIsCompleted(false);
     setShowDeleteConfirmation(false);
     setShowDeleteSuccess(true);
-    
+
     // Navigate home after 1.5 seconds
     setTimeout(() => {
       router.back();
@@ -146,10 +146,7 @@ export default function CompleteDare() {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.congratsContainer}>
-          <TopRightButton
-            style={styles.homeButton}
-            onPress={handleGoHome}
-          >
+          <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
             <Ionicons name="home" size={24} color={Colors.primary[500]} />
           </TopRightButton>
 
@@ -161,7 +158,10 @@ export default function CompleteDare() {
 
             {selectedImage && (
               <View style={styles.thumbnailContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.thumbnail} />
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles.thumbnail}
+                />
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -197,7 +197,12 @@ export default function CompleteDare() {
                     onPress={handleDeleteDare}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.modalOptionText, styles.modalOptionTextDelete]}>
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        styles.modalOptionTextDelete,
+                      ]}
+                    >
                       Delete dare
                     </Text>
                   </TouchableOpacity>
@@ -218,7 +223,9 @@ export default function CompleteDare() {
                 onPress={() => setShowDeleteConfirmation(false)}
               >
                 <View style={styles.modalContent}>
-                  <Text style={styles.confirmationTitle}>Delete this dare?</Text>
+                  <Text style={styles.confirmationTitle}>
+                    Delete this dare?
+                  </Text>
                   <TouchableOpacity
                     style={styles.modalOption}
                     onPress={handleConfirmDeletion}
@@ -231,7 +238,12 @@ export default function CompleteDare() {
                     onPress={() => setShowDeleteConfirmation(false)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.modalOptionText, styles.modalOptionTextCancel]}>
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        styles.modalOptionTextCancel,
+                      ]}
+                    >
                       Cancel
                     </Text>
                   </TouchableOpacity>
@@ -247,7 +259,9 @@ export default function CompleteDare() {
             >
               <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                  <Text style={styles.successTitle}>Dare successfully deleted</Text>
+                  <Text style={styles.successTitle}>
+                    Dare successfully deleted
+                  </Text>
                 </View>
               </View>
             </Modal>
@@ -283,10 +297,7 @@ export default function CompleteDare() {
           </TouchableOpacity>
 
           {/* Home Button */}
-          <TopRightButton
-            style={styles.homeButton}
-            onPress={handleGoHome}
-          >
+          <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
             <Ionicons name="home" size={24} color={Colors.primary[500]} />
           </TopRightButton>
 

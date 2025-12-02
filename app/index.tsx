@@ -14,30 +14,20 @@ import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, FontSizes, Fonts } from "@/constants/theme";
+import { getRandomDare } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Sample dares - these will later be fetched from an API or database
-const sampleDares = [
-  "Take a photo of something beautiful!",
-  //   "Design a logo for an imaginary company using only circles",
-  //   "Write a letter to your future self 5 years from now",
-  //   "Sketch your favorite place from memory",
-  //   "Create a playlist of 5 songs that tell a story",
-  //   "Build something useful from recycled materials",
-  //   "Draw a self-portrait using only geometric shapes",
-  //   "Write a 50-word story that ends with the word 'finally'",
-  //   "Create a collage using only things you find in your kitchen",
-  //   "Compose a haiku about your morning coffee",
-];
 
 export default function Home() {
   const router = useRouter();
   const { profile } = useAuth();
   // For now, pick a random dare. Later this will be daily-based
-  const [currentDare] = useState(() => {
-    return sampleDares[Math.floor(Math.random() * sampleDares.length)];
-  });
+  const [currentDare, setCurrentDare] = useState(() => getRandomDare());
+
+  const handleChooseNewDare = () => {
+    const newDare = getRandomDare(currentDare);
+    setCurrentDare(newDare);
+  };
 
   const userName = profile?.first_name || "Friend";
   const { completedDares, streakDays, highlightedDareId } = useDare();
@@ -85,7 +75,11 @@ export default function Home() {
           {/* Today's Dare Section */}
           <View style={styles.dareSection}>
             <Text style={styles.dareSectionTitle}>Your Dare Today:</Text>
-            <EnvelopeAnimation dare={currentDare} />
+            <EnvelopeAnimation 
+              key={currentDare} 
+              dare={currentDare} 
+              onChooseNewDare={handleChooseNewDare} 
+            />
           </View>
 
           {/* Dare History Section */}
