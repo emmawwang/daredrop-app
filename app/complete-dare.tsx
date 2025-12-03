@@ -78,6 +78,8 @@ export default function CompleteDare() {
   );
   const [isDrawingActive, setIsDrawingActive] = useState(false);
   const drawingCanvasRef = useRef<DrawingCanvasRef>(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const videoPreviewRef = useRef<Video>(null);
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
@@ -718,10 +720,31 @@ export default function CompleteDare() {
               <>
                 {selectedVideo ? (
                   <View style={styles.imagePreview}>
-                    <Text style={styles.videoPreviewText}>Video Selected</Text>
-                    <Text style={styles.videoPreviewSubtext}>
-                      Ready to complete your dare!
-                    </Text>
+                    <View style={styles.videoPreviewWrapper}>
+                      <Video
+                        ref={videoPreviewRef}
+                        source={{ uri: selectedVideo }}
+                        style={styles.previewImage}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        isLooping={false}
+                        onLoadStart={() => setIsVideoLoading(true)}
+                        onReadyForDisplay={() => setIsVideoLoading(false)}
+                        onError={(error) => {
+                          console.error("Video preview error:", error);
+                          setIsVideoLoading(false);
+                        }}
+                      />
+                      {isVideoLoading && (
+                        <View style={styles.videoLoadingOverlay}>
+                          <Image
+                            source={require("@/assets/logo.png")}
+                            style={styles.videoLoadingLogo}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      )}
+                    </View>
 
                     <View style={styles.actionButtons}>
                       <TouchableOpacity
@@ -985,7 +1008,28 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
     borderColor: Colors.primary[500],
+    backgroundColor: "transparent",
     ...Shadows.medium,
+  },
+  videoPreviewWrapper: {
+    position: "relative",
+    width: "100%",
+  },
+  videoLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: BorderRadius.lg,
+  },
+  videoLoadingLogo: {
+    width: 120,
+    height: 120,
+    opacity: 0.8,
   },
   actionButtons: {
     gap: 12,
@@ -1111,7 +1155,7 @@ const styles = StyleSheet.create({
   videoPreviewSubtext: {
     fontSize: 16,
     fontFamily: Fonts.secondary.regular,
-    color: Colors.gray[600],
+    color: Colors.primary[500],
     textAlign: "center",
     marginBottom: 20,
   },

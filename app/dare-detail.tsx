@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
   modalOptionDelete: {
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: Colors.secondary[500],
+    borderColor: Colors.primary[500],
     marginBottom: 0,
   },
   modalOptionText: {
@@ -863,7 +863,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   modalOptionTextDelete: {
-    color: Colors.secondary[500],
+    color: Colors.primary[500],
   },
   modalOptionCancel: {
     backgroundColor: "transparent",

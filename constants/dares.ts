@@ -23,7 +23,7 @@ export const textDareIcons: Record<string, ImageSourcePropType> = {
 
 // Icon mapping for video dares (React Native requires static requires)
 export const videoDareIcons: Record<string, ImageSourcePropType> = {
-  "Tell yourself a joke and record your reaction": require("@/assets/dare-joke.jpeg"),
+  "Tell James Landay a joke!": require("@/assets/dare-joke.jpeg"),
 };
 
 // Sample dares - these will later be fetched from an API or database
@@ -85,7 +85,7 @@ export const sampleDares: Dare[] = [
   },
   {
     id: "11",
-    text: "Tell yourself a joke and record your reaction",
+    text: "Tell James Landay a joke!",
     type: "video",
   }
 ];
