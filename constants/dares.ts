@@ -1,7 +1,7 @@
 import { ImageSourcePropType } from "react-native";
 
 // Dare types
-export type DareType = "photo" | "text" | "video";
+export type DareType = "photo" | "text" | "video" | "drawing";
 
 export interface Dare {
   id: string;
@@ -39,29 +39,29 @@ export const sampleDares: Dare[] = [
   },
   {
     id: "3",
-    text: "Design a logo for an imaginary company using only circles",
-    type: "photo",
+    text: "Draw DareDrop a new logo!",
+    type: "drawing",
   },
   {
     id: "4",
-    text: "Write a letter to your future self 5 years from now",
+    text: "Write a goal for your future self in 5 years",
     type: "text",
     placeholder: "What do you want to tell your future self?",
   },
   {
     id: "5",
-    text: "Sketch your favorite place from memory",
-    type: "photo",
+    text: "Draw a self-portrait using one line",
+    type: "drawing",
   },
   {
     id: "6",
-    text: "Create a playlist of 5 songs that tell a story",
+    text: "What advice would you give to a future CS147 student?",
     type: "text",
-    placeholder: "List the songs and explain the story they tell together...",
+    placeholder: "Share your advice and what you've learned...",
   },
   {
     id: "7",
-    text: "Draw a self-portrait using only geometric shapes",
+    text: "Take a selfie with your CA!",
     type: "photo",
   },
   {
@@ -72,12 +72,12 @@ export const sampleDares: Dare[] = [
   },
   {
     id: "9",
-    text: "Create a collage using only things you find in your kitchen",
+    text: "Tell James a funny joke! [adi change this to video?]",
     type: "photo",
   },
   {
     id: "10",
-    text: "Compose a haiku about your morning coffee",
+    text: "Compose a haiku to James Landay",
     type: "text",
     placeholder: "5 syllables, 7 syllables, 5 syllables...",
   },

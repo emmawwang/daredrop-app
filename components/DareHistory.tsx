@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     marginTop: -150,
     maxWidth: 350,
     minHeight: 280,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
     ...Shadows.medium,
     flexDirection: "column",

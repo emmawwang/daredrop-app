@@ -54,6 +54,56 @@ interface DareContextType {
 
 const DareContext = createContext<DareContextType | undefined>(undefined);
 
+// Helper function to get date string in YYYY-MM-DD format (local timezone)
+const getDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// Calculate streak: consecutive days with at least one completed dare
+const calculateStreak = (dares: Record<string, CompletedDareData>): number => {
+  // Get all unique dates when dares were completed
+  const completedDates = new Set<string>();
+
+  Object.values(dares).forEach((dare) => {
+    if (dare.completed && dare.completedAt) {
+      const date = new Date(dare.completedAt);
+      completedDates.add(getDateString(date));
+    }
+  });
+
+  if (completedDates.size === 0) return 0;
+
+  // Start from today and count backwards
+  const today = new Date();
+  let currentDate = new Date(today);
+  let streak = 0;
+
+  // Check if today has activity
+  const todayStr = getDateString(today);
+  const hasActivityToday = completedDates.has(todayStr);
+
+  // If no activity today, start checking from yesterday
+  if (!hasActivityToday) {
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  // Count consecutive days
+  while (true) {
+    const dateStr = getDateString(currentDate);
+    if (completedDates.has(dateStr)) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+};
+
 export function DareProvider({ children }: { children: ReactNode }) {
   const [completedDares, setCompletedDares] = useState<
     Record<string, CompletedDareData>
@@ -88,7 +138,6 @@ export function DareProvider({ children }: { children: ReactNode }) {
 
       if (data) {
         const daresMap: Record<string, CompletedDareData> = {};
-        let completedCount = 0;
 
         data.forEach((dare: DareData) => {
           daresMap[dare.dare_text] = {
@@ -99,11 +148,11 @@ export function DareProvider({ children }: { children: ReactNode }) {
             draftText: dare.draft_text,
             completedAt: dare.completed_at,
           };
-          if (dare.completed) completedCount++;
         });
 
         setCompletedDares(daresMap);
-        setStreakDays(completedCount);
+        // Calculate actual streak based on consecutive days
+        setStreakDays(calculateStreak(daresMap));
       }
     } catch (error) {
       console.error("Error loading dares:", error);
@@ -278,12 +327,9 @@ export function DareProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
       }
 
-      // Update local state
+      // Update local state and recalculate streak
       setCompletedDares((prev) => {
-        if (!wasAlreadyCompleted) {
-          setStreakDays((prevStreak) => prevStreak + 1);
-        }
-        return {
+        const newDares = {
           ...prev,
           [dare]: {
             completed: true,
@@ -294,6 +340,9 @@ export function DareProvider({ children }: { children: ReactNode }) {
             completedAt: new Date().toISOString(),
           },
         };
+        // Recalculate streak based on consecutive days
+        setStreakDays(calculateStreak(newDares));
+        return newDares;
       });
     } catch (error) {
       console.error("Error marking dare complete:", error);
@@ -417,14 +466,12 @@ export function DareProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Update local state
+      // Update local state and recalculate streak
       setCompletedDares((prev) => {
-        const wasCompleted = prev[dare]?.completed || false;
-        if (wasCompleted) {
-          setStreakDays((prevStreak) => Math.max(0, prevStreak - 1));
-        }
         const newDares = { ...prev };
         delete newDares[dare];
+        // Recalculate streak based on consecutive days
+        setStreakDays(calculateStreak(newDares));
         return newDares;
       });
     } catch (error) {

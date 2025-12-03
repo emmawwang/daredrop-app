@@ -13,6 +13,7 @@ import {
   Modal,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
+import * as Sharing from "expo-sharing";
 import { isVideoFile } from "@/lib/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -116,17 +117,39 @@ export default function DareDetail() {
       }
   
       message += `\n\nJoin me in being creative every day with DareDrop!`;
-  
-      // Choose best share media
-      let shareUrl: string | undefined = undefined;
-  
-      // Priority: Video → Image
-      if (videoUri) {
-        shareUrl = videoUri;
-      } else if (imageUri) {
-        shareUrl = imageUri;
+
+      // Choose best share media - Priority: Video → Image → Text only
+      const shareUrl: string | undefined = videoUri || imageUri || undefined;
+
+      // On Android, if we have an image or video, use expo-sharing to share the file
+      if (Platform.OS === "android" && shareUrl) {
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          // For local files, share directly
+          if (shareUrl.startsWith("file://") || shareUrl.startsWith("content://")) {
+            const mimeType = videoUri ? "video/mp4" : "image/png";
+            await Sharing.shareAsync(shareUrl, {
+              mimeType: mimeType,
+              dialogTitle: "Share your dare!",
+            });
+            return;
+          } else if (shareUrl.startsWith("http")) {
+            // For remote URLs (Supabase), share the message with URL
+            await Share.share(
+              {
+                message: `${message}\n\n${shareUrl}`,
+              },
+              {
+                dialogTitle: "Share your dare!",
+              }
+            );
+            return;
+          }
+        }
       }
-  
+
+      // Build payload for standard Share API
       const sharePayload: any = { message };
   
       if (shareUrl) {
@@ -179,18 +202,31 @@ export default function DareDetail() {
 
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
+    // Check if same day (Today)
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
 
-    return date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    if (isToday) return "Today";
+
+    // Check if yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    if (isYesterday) return "Yesterday";
+
+    // Format as MM/DD/YY for older dates
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
+
+    return `${month}/${day}/${year}`;
   };
 
   const hasContent = imageUri || reflectionText;
@@ -228,7 +264,7 @@ export default function DareDetail() {
             <Text style={styles.dareText}>{dareText}</Text>
           </View>
 
-          {/* Content Display - Photo, Video, or Text Reflection */}
+          {/* Content Display - Photo, Video, Drawing, or Text Reflection */}
           {dareType === "photo" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Creation:</Text>
@@ -299,6 +335,20 @@ export default function DareDetail() {
                 </View>
               </View>
             ) : null
+          ) : dareType === "drawing" && imageUri ? (
+            <View style={styles.imageContainer}>
+              <Text style={styles.sectionLabel}>Your Drawing:</Text>
+              <View style={styles.imageWrapper}>
+                <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={18} />
+                </TouchableOpacity>
+              </View>
+            </View>
           ) : dareType === "text" && reflectionText ? (
             <View style={styles.reflectionContainer}>
               <Text style={styles.sectionLabel}>Your Reflection</Text>
@@ -319,13 +369,20 @@ export default function DareDetail() {
           ) : (
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
-                {(dareType as string) === "photo" ? "📸" : (dareType as string) === "video" ? "🎥" : "✍️"}
+                {(() => {
+                  const type = dareType as "photo" | "video" | "drawing" | "text";
+                  if (type === "photo") return "📸";
+                  if (type === "video") return "🎥";
+                  if (type === "drawing") return "🎨";
+                  return "✍️";
+                })()}
               </Text>
               <Text style={styles.noContentText}>
                 {(() => {
-                  const type = dareType as string;
+                  const type = dareType as "photo" | "video" | "drawing" | "text";
                   if (type === "photo") return "No photo added for this dare";
                   if (type === "video") return "No video added for this dare";
+                  if (type === "drawing") return "No drawing added for this dare";
                   return "No reflection added for this dare";
                 })()}
               </Text>
@@ -345,8 +402,8 @@ export default function DareDetail() {
           {/* Motivational Message */}
           <View style={styles.messageCard}>
             <Text style={styles.messageText}>
-              Keep the creative streak going! Every dare brings out your unique
-              creativity.
+              Keep the creative streak going!{"\n"}Every dare brings out your
+              unique creativity.
             </Text>
           </View>
         </View>
@@ -518,7 +575,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 350,
     borderRadius: BorderRadius.xl,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
     ...Shadows.large,
   },
@@ -592,9 +649,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     padding: 24,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
-    ...Shadows.large,
+    ...Shadows.small,
   },
   reflectionHeader: {
     alignItems: "center",
@@ -662,11 +719,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.green,
     borderRadius: BorderRadius.lg,
     padding: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.primary[400],
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
   },
   messageText: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[600],
     textAlign: "center",
