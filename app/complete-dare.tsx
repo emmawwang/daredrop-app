@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   dareCard: {
     backgroundColor: Colors.accent.yellow,
     borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
     padding: 24,
     marginTop: 100,

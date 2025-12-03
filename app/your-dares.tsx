@@ -174,7 +174,7 @@ export default function YourDares() {
         {completedDaresList.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              Complete dares to fill your collection!
+              Complete dares to fill your collection! 🎨
             </Text>
           </View>
         )}
@@ -256,7 +256,6 @@ const styles = StyleSheet.create({
     top: 60,
     right: 20,
     zIndex: 100,
-    backgroundColor: Colors.accent.green,
   },
   scrollView: {
     flex: 1,
