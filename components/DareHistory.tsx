@@ -26,6 +26,7 @@ const CIRCLE_SIZE = 65;
 const ROW_HEIGHT = 75;
 const BOX_WIDTH = width * 0.9 - 48; // Container width minus padding
 const MAX_DARES = 11;
+const RIGHT_PADDING = 20; // Padding from right wall
 
 interface DareHistoryItem {
   id: string;
@@ -82,13 +83,17 @@ const getMiniPilePosition = (index: number, total: number) => {
 
   const circlesInThisRow = distribution[rowFromBottom];
 
-  // Center the row horizontally within the box
+  // Center the row horizontally within the box, accounting for right padding
+  const availableWidth = BOX_WIDTH - RIGHT_PADDING;
   const rowWidth = circlesInThisRow * CIRCLE_SIZE + (circlesInThisRow - 1) * 12;
-  const rowStartX = (BOX_WIDTH - rowWidth) / 2;
+  const rowStartX = (availableWidth - rowWidth) / 2;
 
-  // Add slight jitter for organic feel
+  // Add slight jitter for organic feel, but constrain to not exceed right boundary
   const xJitter = ((index * 13) % 14) - 7;
-  const left = rowStartX + posInRow * (CIRCLE_SIZE + 12) + xJitter;
+  const left = Math.min(
+    rowStartX + posInRow * (CIRCLE_SIZE + 12) + xJitter,
+    BOX_WIDTH - CIRCLE_SIZE - RIGHT_PADDING
+  );
 
   // Calculate Y from bottom of container
   const bottom = 10 + rowFromBottom * ROW_HEIGHT;
