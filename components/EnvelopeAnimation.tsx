@@ -105,12 +105,6 @@ export default function EnvelopeAnimation({
         duration: 400,
         useNativeDriver: true,
       }),
-      Animated.delay(400),
-      Animated.timing(envelopeOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
     ]).start();
 
     // Card slides out and fades in
@@ -217,8 +211,8 @@ export default function EnvelopeAnimation({
                   ENVELOPE_HEIGHT * 0.5
                 }`}
                 fill={Colors.envelope}
-                stroke={Colors.envelopeOutline}
-                strokeWidth="2"
+                stroke={Colors.primary[500]}
+                strokeWidth="1.5"
               />
             </Svg>
           </Animated.View>
@@ -316,8 +310,8 @@ const styles = StyleSheet.create({
     width: ENVELOPE_WIDTH,
     height: ENVELOPE_HEIGHT,
     backgroundColor: Colors.envelope,
-    borderWidth: 2,
-    borderColor: Colors.envelopeOutline,
+    borderWidth: 1,
+    borderColor: Colors.primary[500],
     borderRadius: BorderRadius.sm,
     top: 0,
     zIndex: 1,
