@@ -28,6 +28,7 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import {
   getDareByText,
@@ -72,6 +73,7 @@ export default function CompleteDare() {
     existingReflection || ""
   );
   const [isCompleted, setIsCompleted] = useState(alreadyCompleted);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
@@ -80,6 +82,8 @@ export default function CompleteDare() {
   );
   const [isDrawingActive, setIsDrawingActive] = useState(false);
   const drawingCanvasRef = useRef<DrawingCanvasRef>(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const videoPreviewRef = useRef<Video>(null);
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
@@ -221,34 +225,40 @@ export default function CompleteDare() {
   };
 
   const handleComplete = async () => {
-    if (dareType === "photo" && selectedImage) {
-      await markDareComplete(dare, { imageUri: selectedImage });
-      setIsCompleted(true);
-    } else if (dareType === "video" && selectedVideo) {
-      await markDareComplete(dare, { videoUri: selectedVideo });
-      setIsCompleted(true);
-    } else if (dareType === "text" && reflectionText.trim()) {
-      await markDareComplete(dare, { reflectionText: reflectionText.trim() });
-      setIsCompleted(true);
-    } else if (dareType === "drawing") {
-      // Export drawing and save it
-      let imageToSave = drawingImage; // Use existing image if available
-
-      if (drawingCanvasRef.current) {
-        const exportedImage = await drawingCanvasRef.current.exportDrawing();
-        if (exportedImage && exportedImage.trim()) {
-          imageToSave = exportedImage;
+    setIsCompleting(true);
+    try {
+      if (dareType === "photo" && selectedImage) {
+        await markDareComplete(dare, { imageUri: selectedImage });
+        setIsCompleted(true);
+        // Loading will be hidden when component re-renders with congrats screen
+      } else if (dareType === "video" && selectedVideo) {
+        await markDareComplete(dare, { videoUri: selectedVideo });
+        setIsCompleted(true);
+        // Loading will be hidden when component re-renders with congrats screen
+      } else if (dareType === "text" && reflectionText.trim()) {
+        await markDareComplete(dare, { reflectionText: reflectionText.trim() });
+        setIsCompleted(true);
+        // Loading will be hidden when component re-renders with congrats screen
+      } else if (dareType === "drawing") {
+        // Export drawing and save it
+        const exportedImage = await drawingCanvasRef.current?.exportDrawing();
+        if (exportedImage) {
           setDrawingImage(exportedImage);
+          await markDareComplete(dare, { imageUri: exportedImage });
+          setIsCompleted(true);
+          // Loading will be hidden when component re-renders with congrats screen
+        } else {
+          setIsCompleting(false);
+          Alert.alert(
+            "Error",
+            "Unable to save your drawing. Please try again."
+          );
         }
       }
-
-      if (!imageToSave || !imageToSave.trim()) {
-        Alert.alert("Error", "Unable to save your drawing. Please try again.");
-        return;
-      }
-
-      await markDareComplete(dare, { imageUri: imageToSave });
-      setIsCompleted(true);
+    } catch (error) {
+      console.error("Error completing dare:", error);
+      setIsCompleting(false);
+      Alert.alert("Error", "Failed to complete dare. Please try again.");
     }
   };
 
@@ -730,10 +740,31 @@ export default function CompleteDare() {
               <>
                 {selectedVideo ? (
                   <View style={styles.imagePreview}>
-                    <Text style={styles.videoPreviewText}>Video Selected</Text>
-                    <Text style={styles.videoPreviewSubtext}>
-                      Ready to complete your dare!
-                    </Text>
+                    <View style={styles.videoPreviewWrapper}>
+                      <Video
+                        ref={videoPreviewRef}
+                        source={{ uri: selectedVideo }}
+                        style={styles.previewImage}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        isLooping={false}
+                        onLoadStart={() => setIsVideoLoading(true)}
+                        onReadyForDisplay={() => setIsVideoLoading(false)}
+                        onError={(error) => {
+                          console.error("Video preview error:", error);
+                          setIsVideoLoading(false);
+                        }}
+                      />
+                      {isVideoLoading && (
+                        <View style={styles.videoLoadingOverlay}>
+                          <Image
+                            source={require("@/assets/logo.png")}
+                            style={styles.videoLoadingLogo}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      )}
+                    </View>
 
                     <View style={styles.actionButtons}>
                       <TouchableOpacity
@@ -889,6 +920,20 @@ export default function CompleteDare() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        visible={isCompleting}
+        message={
+          dareType === "video"
+            ? "Uploading video..."
+            : dareType === "photo"
+              ? "Uploading image..."
+              : dareType === "drawing"
+                ? "Saving drawing..."
+                : "Completing dare..."
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -985,7 +1030,28 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
     borderColor: Colors.primary[500],
+    backgroundColor: "transparent",
     ...Shadows.medium,
+  },
+  videoPreviewWrapper: {
+    position: "relative",
+    width: "100%",
+  },
+  videoLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: BorderRadius.lg,
+  },
+  videoLoadingLogo: {
+    width: 120,
+    height: 120,
+    opacity: 0.8,
   },
   actionButtons: {
     gap: 12,
@@ -1111,7 +1177,7 @@ const styles = StyleSheet.create({
   videoPreviewSubtext: {
     fontSize: 16,
     fontFamily: Fonts.secondary.regular,
-    color: Colors.gray[600],
+    color: Colors.primary[500],
     textAlign: "center",
     marginBottom: 20,
   },
@@ -1191,7 +1257,7 @@ const styles = StyleSheet.create({
   modalOptionDelete: {
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: Colors.secondary[500],
+    borderColor: Colors.primary[500],
     marginBottom: 0,
   },
   modalOptionText: {
@@ -1200,7 +1266,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   modalOptionTextDelete: {
-    color: Colors.secondary[500],
+    color: Colors.primary[500],
   },
   modalOptionCancel: {
     backgroundColor: "transparent",
