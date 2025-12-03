@@ -24,13 +24,22 @@ export default function Home() {
   // For now, pick a random dare. Later this will be daily-based
   const [currentDare, setCurrentDare] = useState<Dare>(() => getRandomDare());
 
-  const handleChooseNewDare = () => {
-    const newDare = getRandomDare(currentDare.text);
-    setCurrentDare(newDare);
-  };
-
   const userName = profile?.first_name || "Friend";
   const { completedDares, streakDays, highlightedDareId } = useDare();
+
+  // Get list of completed dare texts to exclude from "choose another"
+  const completedDareTexts = useMemo(() => {
+    return Object.entries(completedDares)
+      .filter(([_, data]) => data.completed)
+      .map(([dareText]) => dareText);
+  }, [completedDares]);
+
+  const handleChooseNewDare = () => {
+    // Exclude current dare and all completed dares
+    const excludeList = [currentDare.text, ...completedDareTexts];
+    const newDare = getRandomDare(excludeList);
+    setCurrentDare(newDare);
+  };
 
   // Convert completedDares object to array format for DareHistory
   const completedDaresList = useMemo(() => {
