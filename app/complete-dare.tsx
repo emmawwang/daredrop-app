@@ -250,19 +250,30 @@ export default function CompleteDare() {
 
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      // Get image URI - use selectedImage if available, otherwise get from context
-      const imageUri =
-        selectedImage ||
-        (dareType === "photo" ? getDareImage(dare) : undefined);
+      let shareOptions: any = {
+        message: message,
+      };
+
+      // Attach file (image or video) depending on dareType and platform support
+      if (Platform.OS === "ios") {
+        if (dareType === "photo") {
+          // Share image on iOS if available
+          const imageUri = selectedImage || getDareImage(dare);
+          if (imageUri) {
+            shareOptions.url = imageUri;
+          }
+        } else if (dareType === "video") {
+          // Try to share video on iOS if available
+          const videoUri = selectedVideo || getDareVideo(dare); // getDareVideo should be implemented if not already
+          if (videoUri) {
+            shareOptions.url = videoUri;
+          }
+        }
+      }
 
       const result = await Share.share(
+        shareOptions,
         {
-          message: message,
-          // On iOS, you can also share URLs and other content
-          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-        },
-        {
-          // On Android, you can specify a dialog title
           ...(Platform.OS === "android"
             ? { dialogTitle: "Share your dare!" }
             : {}),

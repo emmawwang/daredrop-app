@@ -48,6 +48,7 @@ export default function Home() {
       .map(([dare, data]) => ({
         id: dare,
         image: data.imageUri,
+        videoUri: data.videoUri,
         reflectionText: data.reflectionText,
         completed: data.completed,
         completedAt: data.completedAt,
