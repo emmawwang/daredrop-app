@@ -74,8 +74,8 @@ export const sampleDares: Dare[] = [
   },
   {
     id: "9",
-    text: "Tell James a funny joke! [adi change this to video?]",
-    type: "photo",
+    text: "Record yourself telling James a funny joke!",
+    type: "video",
   },
   {
     id: "10",
@@ -87,7 +87,7 @@ export const sampleDares: Dare[] = [
     id: "11",
     text: "Tell yourself a joke and record your reaction",
     type: "video",
-  }
+  },
 ];
 
 /**
