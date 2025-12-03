@@ -74,8 +74,8 @@ export const sampleDares: Dare[] = [
   },
   {
     id: "9",
-    text: "Tell James a funny joke! [adi change this to video?]",
-    type: "photo",
+    text: "Record yourself telling James a funny joke!",
+    type: "video",
   },
   {
     id: "10",
@@ -87,7 +87,18 @@ export const sampleDares: Dare[] = [
     id: "11",
     text: "Tell James Landay a joke!",
     type: "video",
-  }
+  },
+  {
+    id: "12",
+    text: "Create a playlist of 5 songs that tell a story",
+    type: "text",
+    placeholder: "What's the story? What are the songs?",
+  },
+  {
+    id: "13",
+    text: "Find an old photo of people you love",
+    type: "photo",
+  },
 ];
 
 /**

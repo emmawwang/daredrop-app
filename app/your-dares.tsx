@@ -13,7 +13,11 @@ import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, Shadows } from "@/constants/theme";
-import { getTextDareIcon, getVideoDareIcon, getDareByText } from "@/constants/dares";
+import {
+  getTextDareIcon,
+  getVideoDareIcon,
+  getDareByText,
+} from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -134,11 +138,11 @@ export default function YourDares() {
   const distribution = getPyramidDistribution(completedDaresList.length);
   const totalRows = distribution.length;
   const maxTopPosition = SCREEN_HEIGHT * MAX_TOP_POSITION_RATIO;
-  
+
   // Calculate the bottom of the last row
   const bottomRowTop = maxTopPosition + (totalRows - 1) * ROW_HEIGHT;
   const bottomRowBottom = bottomRowTop + CIRCLE_SIZE;
-  
+
   // Content height should be at least the screen height, or extend to show all dares
   // Add padding at the bottom for better scrolling experience
   const contentHeight = Math.max(
@@ -191,7 +195,7 @@ export default function YourDares() {
         {completedDaresList.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              Complete dares to fill your collection! 🎨
+              Complete dares to fill your collection!
             </Text>
           </View>
         )}
@@ -241,7 +245,11 @@ export default function YourDares() {
                       ]}
                     >
                       <Text style={styles.placeholderEmoji}>
-                        {dare.videoUri ? "🎥" : dare.reflectionText ? "💬" : "📸"}
+                        {dare.videoUri
+                          ? "🎥"
+                          : dare.reflectionText
+                          ? "💬"
+                          : "📸"}
                       </Text>
                     </View>
                   )}

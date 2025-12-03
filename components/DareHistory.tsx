@@ -26,7 +26,6 @@ const CIRCLE_SIZE = 65;
 const ROW_HEIGHT = 75;
 const BOX_WIDTH = width * 0.9 - 48; // Container width minus padding
 const MAX_DARES = 11;
-const RIGHT_PADDING = 20; // Padding from right wall
 
 interface DareHistoryItem {
   id: string;
@@ -84,7 +83,7 @@ const getMiniPilePosition = (index: number, total: number) => {
   const circlesInThisRow = distribution[rowFromBottom];
 
   // Center the row horizontally within the box, accounting for right padding
-  const availableWidth = BOX_WIDTH - RIGHT_PADDING;
+  const availableWidth = BOX_WIDTH;
   const rowWidth = circlesInThisRow * CIRCLE_SIZE + (circlesInThisRow - 1) * 12;
   const rowStartX = (availableWidth - rowWidth) / 2;
 
@@ -92,7 +91,7 @@ const getMiniPilePosition = (index: number, total: number) => {
   const xJitter = ((index * 13) % 14) - 7;
   const left = Math.min(
     rowStartX + posInRow * (CIRCLE_SIZE + 12) + xJitter,
-    BOX_WIDTH - CIRCLE_SIZE - RIGHT_PADDING
+    BOX_WIDTH - CIRCLE_SIZE
   );
 
   // Calculate Y from bottom of container
@@ -135,7 +134,7 @@ export default function DareHistory({
       {isEmpty ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            Complete dares to fill your collection! 🎨
+            Complete dares to fill your collection!
           </Text>
         </View>
       ) : (
