@@ -21,6 +21,12 @@ import { getTextDareIcon } from "@/constants/dares";
 
 const { width } = Dimensions.get("window");
 
+// Mini pile constants for preview box
+const CIRCLE_SIZE = 65;
+const ROW_HEIGHT = 75;
+const BOX_WIDTH = width * 0.9 - 48; // Container width minus padding
+const MAX_DARES = 11;
+
 interface DareHistoryItem {
   id: string;
   image?: string;
@@ -34,6 +40,65 @@ interface DareHistoryProps {
   fullScreen?: boolean;
 }
 
+// Pyramid distribution for mini preview - bottom rows have more circles
+const getMiniPyramidDistribution = (total: number): number[] => {
+  const count = Math.min(total, MAX_DARES);
+  if (count === 0) return [];
+  if (count === 1) return [1];
+  if (count === 2) return [2];
+  if (count === 3) return [3];
+  if (count === 4) return [4];
+  if (count === 5) return [4, 1];
+  if (count === 6) return [4, 2];
+  if (count === 7) return [4, 3];
+  if (count === 8) return [4, 3, 1];
+  if (count === 9) return [4, 3, 2];
+  if (count === 10) return [4, 4, 2];
+  if (count === 11) return [4, 4, 3];
+  return [3, 3, 2]; // Max 8
+};
+
+// Get position for a dare in the mini pyramid pile
+const getMiniPilePosition = (index: number, total: number) => {
+  const count = Math.min(total, MAX_DARES);
+  const distribution = getMiniPyramidDistribution(count);
+  const totalRows = distribution.length;
+
+  // Oldest dares (high index) go to bottom rows, newest (low index) to top
+  let dareIndex = count - 1 - index; // Flip: now 0 = oldest, high = newest
+  let rowFromBottom = 0;
+  let posInRow = 0;
+  let cumulative = 0;
+
+  for (let r = 0; r < distribution.length; r++) {
+    if (dareIndex < cumulative + distribution[r]) {
+      rowFromBottom = r;
+      posInRow = dareIndex - cumulative;
+      break;
+    }
+    cumulative += distribution[r];
+  }
+
+  const circlesInThisRow = distribution[rowFromBottom];
+
+  // Center the row horizontally within the box
+  const rowWidth = circlesInThisRow * CIRCLE_SIZE + (circlesInThisRow - 1) * 12;
+  const rowStartX = (BOX_WIDTH - rowWidth) / 2;
+
+  // Add slight jitter for organic feel
+  const xJitter = ((index * 13) % 14) - 7;
+  const left = rowStartX + posInRow * (CIRCLE_SIZE + 12) + xJitter;
+
+  // Calculate Y from bottom of container
+  const bottom = 10 + rowFromBottom * ROW_HEIGHT;
+
+  // Slight rotation
+  const rotations = [-5, 4, -3, 6, -4, 5, -6, 3];
+  const rotation = rotations[index % rotations.length];
+
+  return { left, bottom, rotation };
+};
+
 export default function DareHistory({
   dares = [],
   highlightedDareId = null,
@@ -41,6 +106,12 @@ export default function DareHistory({
 }: DareHistoryProps) {
   const isEmpty = dares.length === 0;
   const router = useRouter();
+
+  // Limit to MAX_DARES for preview
+  const displayDares = dares.slice(0, MAX_DARES);
+  const distribution = getMiniPyramidDistribution(displayDares.length);
+  const totalRows = distribution.length;
+  const pileHeight = totalRows * ROW_HEIGHT + 20;
 
   const handleDarePress = (dare: DareHistoryItem) => {
     router.push({
@@ -62,18 +133,25 @@ export default function DareHistory({
           </Text>
         </View>
       ) : (
-        <View style={styles.gridContainer}>
-          <View style={styles.daresGrid}>
-            {dares.map((dare, index) => (
+        <View
+          style={[
+            styles.pileContainer,
+            { minHeight: Math.max(180, pileHeight) },
+          ]}
+        >
+          {displayDares.map((dare, index) => {
+            const position = getMiniPilePosition(index, displayDares.length);
+            return (
               <DareCircle
                 key={dare.id}
                 dare={dare}
                 index={index}
                 isHighlighted={highlightedDareId === dare.id}
                 onPress={() => handleDarePress(dare)}
+                position={position}
               />
-            ))}
-          </View>
+            );
+          })}
         </View>
       )}
     </View>
@@ -93,17 +171,19 @@ function getPlaceholderColor(index: number): string {
   return colors[index % colors.length];
 }
 
-// Individual dare circle component with highlighting animation
+// Individual dare circle component with highlighting animation and position
 function DareCircle({
   dare,
   index,
   isHighlighted,
   onPress,
+  position,
 }: {
   dare: DareHistoryItem;
   index: number;
   isHighlighted: boolean;
   onPress: () => void;
+  position: { left: number; bottom: number; rotation: number };
 }) {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
   const borderAnim = React.useRef(new Animated.Value(0)).current;
@@ -156,7 +236,18 @@ function DareCircle({
   });
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[
+        styles.dareCircleWrapper,
+        {
+          left: position.left,
+          bottom: position.bottom,
+          transform: [{ rotate: `${position.rotation}deg` }],
+        },
+      ]}
+    >
       <Animated.View
         style={[
           styles.dareCircle,
@@ -203,7 +294,7 @@ const styles = StyleSheet.create({
     maxWidth: 350,
     minHeight: 280,
     borderWidth: 1.5,
-    borderColor: Colors.secondary[500],
+    borderColor: Colors.primary[500],
     ...Shadows.medium,
     flexDirection: "column",
   },
@@ -219,7 +310,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
-    marginBottom: 20,
+    marginBottom: 10,
   },
   emptyState: {
     flex: 1,
@@ -234,20 +325,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.8,
   },
-  gridContainer: {
+  pileContainer: {
     flex: 1,
-    justifyContent: "flex-end",
+    position: "relative",
   },
-  daresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    gap: 12,
+  dareCircleWrapper: {
+    position: "absolute",
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
   },
   dareCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
     backgroundColor: Colors.white,
     padding: 3,
     ...Shadows.small,
@@ -255,7 +345,7 @@ const styles = StyleSheet.create({
   dareCircleInner: {
     width: "100%",
     height: "100%",
-    borderRadius: 32,
+    borderRadius: CIRCLE_SIZE / 2,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -263,9 +353,9 @@ const styles = StyleSheet.create({
   dareImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 32,
+    borderRadius: CIRCLE_SIZE / 2,
   },
   darePlaceholder: {
-    fontSize: 28,
+    fontSize: 24,
   },
 });

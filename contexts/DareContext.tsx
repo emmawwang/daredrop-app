@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import * as FileSystem from "expo-file-system/legacy";
-
+import { uploadMediaToSupabase, deleteMediaFromSupabase } from "@/lib/storage";
 
 interface DareData {
   id: string;
@@ -202,7 +202,25 @@ export function DareProvider({ children }: { children: ReactNode }) {
       let videoUri = options?.videoUri;
       let reflectionText = options?.reflectionText;
 
-      // If videoUri is a local file, upload it to Supabase Storage
+      // Upload image to Supabase Storage if it's a local file
+      if (imageUri && !imageUri.includes("supabase.co")) {
+        const dareId = `dare_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        const uploadResult = await uploadMediaToSupabase(
+          imageUri,
+          user.id,
+          dareId
+        );
+
+        if (uploadResult) {
+          imageUri = uploadResult;
+        } else {
+          console.error("Failed to upload image, falling back to local URI");
+        }
+      }
+
+      // If videoUri is a local file, upload it to Supabase Storage using our custom function
       if (videoUri && (videoUri.startsWith("file://") || videoUri.startsWith("content://"))) {
         try {
           const uploadedUrl = await uploadVideo(videoUri, dare);
@@ -216,12 +234,20 @@ export function DareProvider({ children }: { children: ReactNode }) {
       // Check if dare already exists in database
       const { data: existingDare } = await supabase
         .from("dares")
-        .select("id, completed")
+        .select("id, completed, image_uri, video_uri")
         .eq("user_id", user.id)
         .eq("dare_text", dare)
         .single();
 
       if (existingDare) {
+        // Delete old media from storage if updating with new media
+        if (existingDare.image_uri && imageUri !== existingDare.image_uri) {
+          await deleteMediaFromSupabase(existingDare.image_uri);
+        }
+        if (existingDare.video_uri && videoUri !== existingDare.video_uri) {
+          // Note: Video deletion would need to be implemented if needed
+        }
+
         // Update existing dare - clear draft when completing
         const { error } = await supabase
           .from("dares")
@@ -368,6 +394,19 @@ export function DareProvider({ children }: { children: ReactNode }) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Get the dare to find its media URL
+      const { data: dareData } = await supabase
+        .from("dares")
+        .select("image_uri")
+        .eq("user_id", user.id)
+        .eq("dare_text", dare)
+        .single();
+
+      // Delete media from storage if exists
+      if (dareData?.image_uri) {
+        await deleteMediaFromSupabase(dareData.image_uri);
+      }
 
       // Delete from database
       const { error } = await supabase

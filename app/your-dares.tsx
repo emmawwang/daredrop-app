@@ -18,40 +18,86 @@ import { useDare } from "@/contexts/DareContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// Fun scattered positions for dares - creates organic, piled-up look starting from bottom
-const getScatteredPosition = (index: number, total: number) => {
-  // Start from bottom of screen and work upwards
-  const startFromBottom = SCREEN_HEIGHT - 200;
+// Grid layout constants - no overlapping circles
+const CIRCLE_SIZE = 115;
+const ROW_HEIGHT = 130;
+const BOTTOM_PADDING = 50; // Space from bottom of screen
+const TITLE_HEIGHT = 280; // Height of title area to avoid
 
-  const positions = [
-    { left: "8%", top: startFromBottom, size: 115, rotation: -8 },
-    { left: "58%", top: startFromBottom - 30, size: 125, rotation: 5 },
-    { left: "25%", top: startFromBottom - 160, size: 110, rotation: 12 },
-    { left: "65%", top: startFromBottom - 180, size: 120, rotation: -6 },
-    { left: "10%", top: startFromBottom - 320, size: 118, rotation: 7 },
-    { left: "58%", top: startFromBottom - 360, size: 112, rotation: -10 },
-    { left: "15%", top: startFromBottom - 490, size: 122, rotation: 4 },
-    { left: "62%", top: startFromBottom - 520, size: 116, rotation: -5 },
-    { left: "8%", top: startFromBottom - 660, size: 120, rotation: 9 },
-    { left: "55%", top: startFromBottom - 690, size: 114, rotation: -7 },
-    { left: "22%", top: startFromBottom - 830, size: 118, rotation: 6 },
-    { left: "60%", top: startFromBottom - 860, size: 117, rotation: -4 },
-  ];
+// Calculate pyramid row distribution - bottom rows have more, top rows taper
+// Returns array like [3, 3, 2, 1] meaning bottom row has 3, next has 3, etc.
+const getPyramidDistribution = (total: number): number[] => {
+  if (total === 0) return [];
+  if (total === 1) return [1];
+  if (total === 2) return [2];
+  if (total === 3) return [3];
+  if (total === 4) return [3, 1];
+  if (total === 5) return [3, 2];
+  if (total === 6) return [3, 3];
+  if (total === 7) return [3, 3, 1];
+  if (total === 8) return [3, 3, 2];
+  if (total === 9) return [3, 3, 3];
+  if (total === 10) return [3, 3, 3, 1];
 
-  // If we have more dares than predefined positions, continue the pattern
-  if (index < positions.length) {
-    return positions[index];
+  // For larger numbers, build pyramid pattern: 3, 3, 3, 2, 2, 1, 1...
+  const rows: number[] = [];
+  let remaining = total;
+  let maxInRow = 3;
+
+  while (remaining > 0) {
+    const inThisRow = Math.min(remaining, maxInRow);
+    rows.push(inThisRow);
+    remaining -= inThisRow;
+    // Gradually reduce max per row for pyramid effect (every 2-3 rows)
+    if (rows.length % 3 === 0 && maxInRow > 1) {
+      maxInRow--;
+    }
   }
 
-  // Generate more positions dynamically, continuing upwards
-  const row = Math.floor(index / 2);
-  const isLeft = index % 2 === 0;
-  return {
-    left: isLeft ? "10%" : "58%",
-    top: startFromBottom - 170 * row,
-    size: 110 + (index % 3) * 6,
-    rotation: (index % 2 === 0 ? 1 : -1) * (4 + (index % 5)),
-  };
+  return rows;
+};
+
+// Get position for a dare in the pyramid pile
+// index 0 = newest (top of pile), highest index = oldest (bottom)
+const getBinPosition = (index: number, total: number) => {
+  const distribution = getPyramidDistribution(total);
+  const totalRows = distribution.length;
+
+  // Find which row this dare belongs to (counting from bottom)
+  // Oldest dares (high index) go to bottom rows, newest (low index) to top
+  let dareIndex = total - 1 - index; // Flip: now 0 = oldest, high = newest
+  let rowFromBottom = 0;
+  let posInRow = 0;
+  let cumulative = 0;
+
+  for (let r = 0; r < distribution.length; r++) {
+    if (dareIndex < cumulative + distribution[r]) {
+      rowFromBottom = r;
+      posInRow = dareIndex - cumulative;
+      break;
+    }
+    cumulative += distribution[r];
+  }
+
+  const circlesInThisRow = distribution[rowFromBottom];
+
+  // Center the row horizontally
+  const rowWidth = circlesInThisRow * CIRCLE_SIZE + (circlesInThisRow - 1) * 15;
+  const rowStartX = (SCREEN_WIDTH - rowWidth) / 2;
+
+  // Add slight random offset for organic feel
+  const xJitter = ((index * 17) % 20) - 10;
+  const left = rowStartX + posInRow * (CIRCLE_SIZE + 15) + xJitter;
+
+  // Calculate Y position - bottom row at screen bottom
+  const bottomRowTop = SCREEN_HEIGHT - BOTTOM_PADDING - CIRCLE_SIZE;
+  const top = bottomRowTop - rowFromBottom * ROW_HEIGHT;
+
+  // Slight rotation for natural "dropped" look
+  const rotations = [-6, 5, -4, 7, -3, 6, -5, 4, -7, 3];
+  const rotation = rotations[index % rotations.length];
+
+  return { left, top, rotation };
 };
 
 export default function YourDares() {
@@ -59,6 +105,7 @@ export default function YourDares() {
   const { completedDares } = useDare();
 
   // Convert completedDares object to array format
+  // Sort by completedAt: newest first (top of pile), oldest last (bottom)
   const completedDaresList = useMemo(() => {
     return Object.entries(completedDares)
       .filter(([_, data]) => data.completed)
@@ -67,8 +114,29 @@ export default function YourDares() {
         image: data.imageUri,
         reflectionText: data.reflectionText,
         completed: data.completed,
-      }));
+        completedAt: data.completedAt,
+      }))
+      .sort((a, b) => {
+        // Sort by completedAt descending (newest first = top of pile)
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        return dateB - dateA; // Newest first
+      });
   }, [completedDares]);
+
+  // Calculate content height for scrolling
+  // When pile grows large, we need to scroll to see all dares
+  const distribution = getPyramidDistribution(completedDaresList.length);
+  const totalRows = distribution.length;
+  const pileHeight = totalRows * ROW_HEIGHT;
+  // The topmost row position when pile is large
+  const topRowPosition =
+    SCREEN_HEIGHT - BOTTOM_PADDING - CIRCLE_SIZE - (totalRows - 1) * ROW_HEIGHT;
+  // If top row would go above title, we need extra scroll space
+  const contentHeight =
+    topRowPosition < TITLE_HEIGHT
+      ? SCREEN_HEIGHT + (TITLE_HEIGHT - topRowPosition)
+      : SCREEN_HEIGHT;
 
   const handleDarePress = (dare: any) => {
     router.push({
@@ -86,16 +154,13 @@ export default function YourDares() {
         <Ionicons name="home" size={24} color={Colors.primary[500]} />
       </TopRightButton>
 
-      {/* Scrollable Content */}
+      {/* Scrollable Content - scroll DOWN to see older dares at bottom */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
           {
-            minHeight: Math.max(
-              SCREEN_HEIGHT,
-              completedDaresList.length * 90 + 300
-            ),
+            minHeight: Math.max(SCREEN_HEIGHT, contentHeight),
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -114,12 +179,10 @@ export default function YourDares() {
           </View>
         )}
 
-        {/* Scattered Dares */}
+        {/* Dare Bin - newest at top, scroll down for older dares */}
+        {/* index 0 = newest (top of page), higher index = older (bottom) */}
         {completedDaresList.map((dare, index) => {
-          const position = getScatteredPosition(
-            index,
-            completedDaresList.length
-          );
+          const position = getBinPosition(index, completedDaresList.length);
           return (
             <TouchableOpacity
               key={dare.id}
@@ -130,8 +193,8 @@ export default function YourDares() {
                 {
                   left: position.left,
                   top: position.top,
-                  width: position.size,
-                  height: position.size,
+                  width: CIRCLE_SIZE,
+                  height: CIRCLE_SIZE,
                   transform: [{ rotate: `${position.rotation}deg` }],
                 },
               ]}

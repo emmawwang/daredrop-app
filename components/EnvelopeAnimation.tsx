@@ -264,7 +264,7 @@ export default function EnvelopeAnimation({
                   </Text>
                 </TouchableOpacity>
 
-                {!isCompleted && onChooseNewDare && (
+                {onChooseNewDare && (
                   <TouchableOpacity
                     style={styles.newDareButton}
                     onPress={onChooseNewDare}

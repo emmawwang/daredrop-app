@@ -24,13 +24,22 @@ export default function Home() {
   // For now, pick a random dare. Later this will be daily-based
   const [currentDare, setCurrentDare] = useState<Dare>(() => getRandomDare());
 
-  const handleChooseNewDare = () => {
-    const newDare = getRandomDare(currentDare.text);
-    setCurrentDare(newDare);
-  };
-
   const userName = profile?.first_name || "Friend";
   const { completedDares, streakDays, highlightedDareId } = useDare();
+
+  // Get list of completed dare texts to exclude from "choose another"
+  const completedDareTexts = useMemo(() => {
+    return Object.entries(completedDares)
+      .filter(([_, data]) => data.completed)
+      .map(([dareText]) => dareText);
+  }, [completedDares]);
+
+  const handleChooseNewDare = () => {
+    // Exclude current dare and all completed dares
+    const excludeList = [currentDare.text, ...completedDareTexts];
+    const newDare = getRandomDare(excludeList);
+    setCurrentDare(newDare);
+  };
 
   // Convert completedDares object to array format for DareHistory
   const completedDaresList = useMemo(() => {
@@ -41,7 +50,14 @@ export default function Home() {
         image: data.imageUri,
         reflectionText: data.reflectionText,
         completed: data.completed,
-      }));
+        completedAt: data.completedAt,
+      }))
+      .sort((a, b) => {
+        // Sort by completedAt descending (newest first = top of pile)
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        return dateB - dateA;
+      });
   }, [completedDares]);
 
   return (
@@ -84,6 +100,7 @@ export default function Home() {
 
           {/* Dare History Section */}
           <TouchableOpacity
+            style={styles.dareHistorySection}
             activeOpacity={0.9}
             onPress={() => router.push("/your-dares")}
           >
@@ -110,7 +127,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
     alignItems: "center",
   },
   header: {
@@ -119,7 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "flex-start",
     paddingHorizontal: 8,
-    marginTop: 40,
+    marginTop: 10,
     gap: 15,
   },
   headerLeft: {
@@ -128,7 +145,7 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: "absolute",
-    top: 44,
+    top: 58,
     right: 20,
     zIndex: 10,
   },
@@ -137,6 +154,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
     lineHeight: 44,
+    marginBottom: 20,
   },
   dareSection: {
     width: "100%",
@@ -150,5 +168,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: "flex-start",
     paddingLeft: 8,
+  },
+  dareHistorySection: {
+    marginTop: 10,
   },
 });

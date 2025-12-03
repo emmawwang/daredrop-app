@@ -84,15 +84,22 @@ export const sampleDares: Dare[] = [
 ];
 
 /**
- * Get a random dare from the list, optionally excluding a specific dare
+ * Get a random dare from the list, optionally excluding specific dares
+ * @param excludeDareTexts - Single dare text or array of dare texts to exclude
  */
-export function getRandomDare(excludeDareText?: string): Dare {
-  const availableDares = excludeDareText
-    ? sampleDares.filter((d) => d.text !== excludeDareText)
-    : sampleDares;
+export function getRandomDare(excludeDareTexts?: string | string[]): Dare {
+  const excludeList = excludeDareTexts
+    ? Array.isArray(excludeDareTexts)
+      ? excludeDareTexts
+      : [excludeDareTexts]
+    : [];
+
+  const availableDares = sampleDares.filter(
+    (d) => !excludeList.includes(d.text)
+  );
 
   if (availableDares.length === 0) {
-    // Fallback if somehow all dares are excluded
+    // Fallback if all dares are excluded - return random from all
     return sampleDares[Math.floor(Math.random() * sampleDares.length)];
   }
 

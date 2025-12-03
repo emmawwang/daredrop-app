@@ -12,6 +12,8 @@ import {
   Platform,
   Modal,
 } from "react-native";
+import { Video, ResizeMode } from "expo-av";
+import { isVideoFile } from "@/lib/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Video, ResizeMode } from "expo-av";
@@ -152,7 +154,7 @@ export default function DareDetail() {
       pathname: "/complete-dare",
       params: {
         dare: dareText,
-        completed: "true",
+        completed: "false",
         imageUri: imageUri,
         videoUri: videoUri,
         reflectionText: reflectionText,
@@ -233,9 +235,19 @@ export default function DareDetail() {
           {/* Content Display - Photo, Video, or Text Reflection */}
           {dareType === "photo" && imageUri ? (
             <View style={styles.imageContainer}>
-              <Text style={styles.sectionLabel}>Your Creation</Text>
+              <Text style={styles.sectionLabel}>Your Creation:</Text>
               <View style={styles.imageWrapper}>
-                <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                {isVideoFile(imageUri) ? (
+                  <Video
+                    source={{ uri: imageUri }}
+                    style={styles.dareImage}
+                    useNativeControls
+                    resizeMode={ResizeMode.CONTAIN}
+                    isLooping
+                  />
+                ) : (
+                  <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                )}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -443,7 +455,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 0,
   },
   closeButton: {
     alignSelf: "flex-end",
@@ -497,8 +509,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionLabel: {
-    fontSize: 20,
-    fontFamily: Fonts.secondary.semiBold,
+    fontSize: 30,
+    fontFamily: Fonts.primary.regular,
     color: Colors.secondary[500],
     marginBottom: 12,
     textAlign: "center",
@@ -658,8 +670,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary[400],
   },
   messageText: {
-    fontSize: 16,
-    fontFamily: Fonts.secondary.regular,
+    fontSize: 20,
+    fontFamily: Fonts.primary.regular,
     color: Colors.primary[600],
     textAlign: "center",
     lineHeight: 24,
