@@ -87,11 +87,17 @@ const getMiniPilePosition = (index: number, total: number) => {
   const rowWidth = circlesInThisRow * CIRCLE_SIZE + (circlesInThisRow - 1) * 12;
   const rowStartX = (availableWidth - rowWidth) / 2;
 
-  // Add slight jitter for organic feel, but constrain to not exceed right boundary
-  const xJitter = ((index * 13) % 14) - 7;
-  const left = Math.min(
-    rowStartX + posInRow * (CIRCLE_SIZE + 12) + xJitter,
-    BOX_WIDTH - CIRCLE_SIZE
+  // Add slight jitter for organic feel, but use dareIndex for consistency
+  // This ensures dares in the same row have consistent jitter calculation
+  const xJitter = ((dareIndex * 13) % 14) - 7;
+  
+  // Calculate base left position without constraint first
+  const baseLeft = rowStartX + posInRow * (CIRCLE_SIZE + 12) + xJitter;
+  
+  // Constrain to ensure circles don't exceed boundaries, but preserve spacing
+  const left = Math.max(
+    0,
+    Math.min(baseLeft, BOX_WIDTH - CIRCLE_SIZE)
   );
 
   // Calculate Y from bottom of container
