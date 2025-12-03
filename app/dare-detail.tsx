@@ -238,8 +238,8 @@ export default function DareDetail() {
           {/* Motivational Message */}
           <View style={styles.messageCard}>
             <Text style={styles.messageText}>
-              Keep the creative streak going! Every dare brings out your unique
-              creativity.
+              Keep the creative streak going!{"\n"}Every dare brings out your
+              unique creativity.
             </Text>
           </View>
         </View>
@@ -438,9 +438,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     padding: 24,
-    borderWidth: 3,
+    borderWidth: 1.5,
     borderColor: Colors.primary[500],
-    ...Shadows.large,
+    ...Shadows.small,
   },
   reflectionHeader: {
     alignItems: "center",
@@ -508,11 +508,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.green,
     borderRadius: BorderRadius.lg,
     padding: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.primary[400],
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
   },
   messageText: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[600],
     textAlign: "center",
