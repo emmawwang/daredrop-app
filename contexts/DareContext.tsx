@@ -6,6 +6,8 @@ import React, {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import * as FileSystem from "expo-file-system/legacy";
+
 
 interface DareData {
   id: string;
@@ -121,26 +123,63 @@ export function DareProvider({ children }: { children: ReactNode }) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      // Generate a unique filename
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+  
+      // Unique filename
       const timestamp = Date.now();
       const filename = `${user.id}/${dare.replace(/[^a-zA-Z0-9]/g, "_")}_${timestamp}.mp4`;
-
-      // Read the video file
-      const response = await fetch(videoUri);
-      const blob = await response.blob();
-
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from("dare-videos")
-        .upload(filename, blob, {
-          contentType: "video/mp4",
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      // Return the path (we'll use signed URLs when displaying)
-      // Format: {bucket}/{path}
+  
+      // Read the video file as base64
+      const base64 = await FileSystem.readAsStringAsync(videoUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+      // Convert base64 to Uint8Array (binary data) - React Native compatible
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      let bufferLength = base64.length * 0.75;
+      if (base64[base64.length - 1] === '=') {
+        bufferLength--;
+        if (base64[base64.length - 2] === '=') {
+          bufferLength--;
+        }
+      }
+      
+      const bytes = new Uint8Array(bufferLength);
+      let p = 0;
+      for (let i = 0; i < base64.length; i += 4) {
+        const encoded1 = chars.indexOf(base64[i]);
+        const encoded2 = chars.indexOf(base64[i + 1]);
+        const encoded3 = chars.indexOf(base64[i + 2]);
+        const encoded4 = chars.indexOf(base64[i + 3]);
+        
+        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+        if (encoded3 !== 64) bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+        if (encoded4 !== 64) bytes[p++] = ((encoded3 & 3) << 6) | encoded4;
+      }
+  
+      // Upload using Supabase Storage REST API with proper binary data
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
+      const filePath = encodeURIComponent(filename);
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/dare-videos/${filePath}`;
+  
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'video/mp4',
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+        },
+        body: bytes,
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Upload error response:', errorText);
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      }
+  
       return `dare-videos/${filename}`;
     } catch (error) {
       console.error("Error uploading video:", error);
@@ -159,7 +198,9 @@ export function DareProvider({ children }: { children: ReactNode }) {
       if (!user) return;
 
       const wasAlreadyCompleted = completedDares[dare]?.completed || false;
-      let { imageUri, videoUri, reflectionText } = options || {};
+      let imageUri = options?.imageUri;
+      let videoUri = options?.videoUri;
+      let reflectionText = options?.reflectionText;
 
       // If videoUri is a local file, upload it to Supabase Storage
       if (videoUri && (videoUri.startsWith("file://") || videoUri.startsWith("content://"))) {

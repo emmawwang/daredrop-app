@@ -32,7 +32,7 @@ export default function DareDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const dareText = params.dare as string;
-  const { getDareImage, getDareVideo, getDareReflection, getDareDate, deleteDare } =
+  const { getDareImage, getDareVideo, getDareReflection, getDareDate, deleteDare, loadDares } =
     useDare();
 
   // Get dare type
@@ -45,43 +45,62 @@ export default function DareDetail() {
   const dareDate = getDareDate(dareText);
   const videoRef = useRef<Video>(null);
   const [videoUri, setVideoUri] = useState<string | undefined>(undefined);
+  const [videoError, setVideoError] = useState<string | undefined>(undefined);
+
+  // Reload dares when component mounts to ensure we have latest data
+  useEffect(() => {
+    loadDares();
+  }, []);
 
   // Get signed URL for video if it's stored in Supabase Storage
   useEffect(() => {
     const getSignedUrl = async () => {
       if (!videoPath) {
+        console.log("No video path found for dare:", dareText);
         setVideoUri(undefined);
+        setVideoError(undefined);
         return;
       }
 
+      console.log("Loading video from path:", videoPath);
+
       // If it's already a full URL, use it directly
       if (videoPath.startsWith("http://") || videoPath.startsWith("https://")) {
+        console.log("Using direct URL:", videoPath);
         setVideoUri(videoPath);
+        setVideoError(undefined);
         return;
       }
 
       // If it's a storage path, get a signed URL
       if (videoPath.startsWith("dare-videos/")) {
         const path = videoPath.replace("dare-videos/", "");
+        console.log("Creating signed URL for path:", path);
+        
         const { data, error } = await supabase.storage
           .from("dare-videos")
           .createSignedUrl(path, 3600); // 1 hour expiry
 
         if (error || !data) {
           console.error("Error getting signed URL:", error);
+          setVideoError(error?.message || "Failed to load video");
           setVideoUri(undefined);
           return;
         }
 
+        console.log("Successfully created signed URL");
         setVideoUri(data.signedUrl);
+        setVideoError(undefined);
       } else {
         // Local file path
+        console.log("Using local file path:", videoPath);
         setVideoUri(videoPath);
+        setVideoError(undefined);
       }
     };
 
     getSignedUrl();
-  }, [videoPath]);
+  }, [videoPath, dareText]);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -226,27 +245,52 @@ export default function DareDetail() {
                 </TouchableOpacity>
               </View>
             </View>
-          ) : dareType === "video" && videoUri ? (
-            <View style={styles.videoContainer}>
-              <Text style={styles.sectionLabel}>Your Creation</Text>
-              <View style={styles.videoWrapper}>
-                <Video
-                  ref={videoRef}
-                  source={{ uri: videoUri }}
-                  style={styles.dareVideo}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  isLooping={false}
-                />
-                <TouchableOpacity
-                  style={styles.pencilButton}
-                  activeOpacity={0.7}
-                  onPress={() => setShowEditModal(true)}
-                >
-                  <Pencil color={Colors.primary[500]} size={18} />
-                </TouchableOpacity>
+          ) : dareType === "video" ? (
+            videoUri ? (
+              <View style={styles.videoContainer}>
+                <Text style={styles.sectionLabel}>Your Creation</Text>
+                <View style={styles.videoWrapper}>
+                  <Video
+                    ref={videoRef}
+                    source={{ uri: videoUri }}
+                    style={styles.dareVideo}
+                    useNativeControls
+                    resizeMode={ResizeMode.CONTAIN}
+                    isLooping={false}
+                    onError={(error) => {
+                      console.error("Video playback error:", error);
+                      setVideoError("Failed to play video");
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.pencilButton}
+                    activeOpacity={0.7}
+                    onPress={() => setShowEditModal(true)}
+                  >
+                    <Pencil color={Colors.primary[500]} size={18} />
+                  </TouchableOpacity>
+                </View>
+                {videoError && (
+                  <Text style={styles.errorText}>{videoError}</Text>
+                )}
               </View>
-            </View>
+            ) : videoError ? (
+              <View style={styles.videoContainer}>
+                <Text style={styles.sectionLabel}>Your Creation</Text>
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>
+                    Unable to load video: {videoError}
+                  </Text>
+                </View>
+              </View>
+            ) : videoPath ? (
+              <View style={styles.videoContainer}>
+                <Text style={styles.sectionLabel}>Your Creation</Text>
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>Loading video...</Text>
+                </View>
+              </View>
+            ) : null
           ) : dareType === "text" && reflectionText ? (
             <View style={styles.reflectionContainer}>
               <Text style={styles.sectionLabel}>Your Reflection</Text>
@@ -267,14 +311,15 @@ export default function DareDetail() {
           ) : (
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
-                {dareType === "photo" ? "📸" : dareType === "video" ? "🎥" : "✍️"}
+                {(dareType as string) === "photo" ? "📸" : (dareType as string) === "video" ? "🎥" : "✍️"}
               </Text>
               <Text style={styles.noContentText}>
-                {dareType === "photo"
-                  ? "No photo added for this dare"
-                  : dareType === "video"
-                    ? "No video added for this dare"
-                    : "No reflection added for this dare"}
+                {(() => {
+                  const type = dareType as string;
+                  if (type === "photo") return "No photo added for this dare";
+                  if (type === "video") return "No video added for this dare";
+                  return "No reflection added for this dare";
+                })()}
               </Text>
             </View>
           )}
@@ -481,8 +526,40 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 3,
     borderColor: Colors.primary[500],
-    backgroundColor: Colors.black,
+    backgroundColor: Colors.primary[500],
     ...Shadows.large,
+  },
+  errorContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: Colors.secondary[500],
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 200,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.secondary[500],
+    textAlign: "center",
+  },
+  loadingContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: Colors.primary[500],
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 200,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.primary[500],
+    textAlign: "center",
   },
   pencilButton: {
     position: "absolute",
