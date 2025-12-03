@@ -241,59 +241,42 @@ export default function CompleteDare() {
   const handleShare = async () => {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dare}"`;
-
-      // Get reflection text - use state if available, otherwise get from context
+  
+      // Include reflection text if present
       const reflection = reflectionText || getDareReflection(dare);
       if (reflection) {
         message += `\n\nMy reflection:\n"${reflection}"`;
       }
-
+  
       message += `\n\nJoin me in being creative every day with DareDrop!`;
-
-      let shareOptions: any = {
-        message: message,
-      };
-
-      // Attach file (image or video) depending on dareType and platform support
-      if (Platform.OS === "ios") {
-        if (dareType === "photo") {
-          // Share image on iOS if available
-          const imageUri = selectedImage || getDareImage(dare);
-          if (imageUri) {
-            shareOptions.url = imageUri;
-          }
-        } else if (dareType === "video") {
-          // Try to share video on iOS if available
-          const videoUri = selectedVideo || getDareVideo(dare); // getDareVideo should be implemented if not already
-          if (videoUri) {
-            shareOptions.url = videoUri;
-          }
-        }
+  
+      // Determine media (VIDEO → IMAGE → NOTHING)
+      const videoUriToShare =
+        selectedVideo || (dareType === "video" ? getDareVideo(dare) : undefined);
+  
+      const imageUriToShare =
+        selectedImage ||
+        (dareType === "photo" ? getDareImage(dare) : undefined);
+  
+      let shareUrl: string | undefined =
+        videoUriToShare || imageUriToShare || undefined;
+  
+      // Build payload
+      const sharePayload: any = { message };
+  
+      // Add attachment if available
+      if (shareUrl) {
+        sharePayload.url = shareUrl; // Works on both iOS + Android
       }
-
-      const result = await Share.share(
-        shareOptions,
-        {
-          ...(Platform.OS === "android"
-            ? { dialogTitle: "Share your dare!" }
-            : {}),
-        }
-      );
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // Shared with activity type of result.activityType
-        } else {
-          // Shared
-        }
-      } else if (result.action === Share.dismissedAction) {
-        // Dismissed
-      }
+  
+      await Share.share(sharePayload, {
+        dialogTitle: "Share your dare!",
+      });
     } catch (error: any) {
       Alert.alert("Error", "Failed to share dare");
       console.error(error);
     }
-  };
+  };  
 
   const handleEditDare = () => {
     setShowEditModal(false);

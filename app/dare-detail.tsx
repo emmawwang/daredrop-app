@@ -110,41 +110,38 @@ export default function DareDetail() {
   const handleShare = async () => {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dareText}"`;
-
+  
       if (reflectionText) {
         message += `\n\nMy reflection:\n"${reflectionText}"`;
       }
-
+  
       message += `\n\nJoin me in being creative every day with DareDrop!`;
-
-      const result = await Share.share(
-        {
-          message: message,
-          // On iOS, you can also share URLs and other content
-          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-        },
-        {
-          // On Android, you can specify a dialog title
-          ...(Platform.OS === "android"
-            ? { dialogTitle: "Share your dare!" }
-            : {}),
-        }
-      );
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // Shared with activity type of result.activityType
-        } else {
-          // Shared
-        }
-      } else if (result.action === Share.dismissedAction) {
-        // Dismissed
+  
+      // Choose best share media
+      let shareUrl: string | undefined = undefined;
+  
+      // Priority: Video → Image
+      if (videoUri) {
+        shareUrl = videoUri;
+      } else if (imageUri) {
+        shareUrl = imageUri;
       }
+  
+      const sharePayload: any = { message };
+  
+      if (shareUrl) {
+        sharePayload.url = shareUrl; // Works on both platforms
+      }
+  
+      await Share.share(sharePayload, {
+        dialogTitle: "Share your dare!",
+      });
     } catch (error: any) {
       Alert.alert("Error", "Failed to share dare");
       console.error(error);
     }
   };
+  
 
   const handleEditDare = () => {
     setShowEditModal(false);
