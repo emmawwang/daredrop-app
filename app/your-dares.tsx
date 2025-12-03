@@ -23,38 +23,42 @@ const CIRCLE_SIZE = 115;
 const ROW_HEIGHT = 130;
 const BOTTOM_PADDING = 50; // Space from bottom of screen
 const TITLE_HEIGHT = 280; // Height of title area to avoid
+const MAX_TOP_POSITION_RATIO = 0.32; // Never place circles above 60% of screen height
 
-// Calculate pyramid row distribution - bottom rows have more, top rows taper
-// Returns array like [3, 3, 2, 1] meaning bottom row has 3, next has 3, etc.
+// Calculate pyramid row distribution - top rows (newest) taper, bottom rows (oldest) have more
+// Returns array like [1, 2, 3, 3] meaning top row (index 0) has 1, next has 2, bottom rows have 3, etc.
 const getPyramidDistribution = (total: number): number[] => {
   if (total === 0) return [];
   if (total === 1) return [1];
-  if (total === 2) return [2];
-  if (total === 3) return [3];
-  if (total === 4) return [3, 1];
-  if (total === 5) return [3, 2];
+  if (total === 2) return [1, 1];
+  if (total === 3) return [1, 2];
+  if (total === 4) return [1, 3];
+  if (total === 5) return [2, 3];
   if (total === 6) return [3, 3];
-  if (total === 7) return [3, 3, 1];
-  if (total === 8) return [3, 3, 2];
+  if (total === 7) return [1, 3, 3];
+  if (total === 8) return [2, 3, 3];
   if (total === 9) return [3, 3, 3];
-  if (total === 10) return [3, 3, 3, 1];
+  if (total === 10) return [1, 3, 3, 3];
 
-  // For larger numbers, build pyramid pattern: 3, 3, 3, 2, 2, 1, 1...
+  // For larger numbers, build pyramid pattern from top to bottom
+  // Top rows (index 0) have fewer circles, bottom rows have more
+  // Build from bottom up conceptually, then reverse to get top-to-bottom array
   const rows: number[] = [];
   let remaining = total;
-  let maxInRow = 3;
+  let maxInRow = 3; // Start with 3 for bottom rows
 
   while (remaining > 0) {
     const inThisRow = Math.min(remaining, maxInRow);
     rows.push(inThisRow);
     remaining -= inThisRow;
-    // Gradually reduce max per row for pyramid effect (every 2-3 rows)
+    // Gradually reduce max per row as we go up (every 2-3 rows)
     if (rows.length % 3 === 0 && maxInRow > 1) {
       maxInRow--;
     }
   }
 
-  return rows;
+  // Reverse so top rows (index 0) have fewer, bottom rows have more
+  return rows.reverse();
 };
 
 // Get position for a dare in the pyramid pile
@@ -63,23 +67,22 @@ const getBinPosition = (index: number, total: number) => {
   const distribution = getPyramidDistribution(total);
   const totalRows = distribution.length;
 
-  // Find which row this dare belongs to (counting from bottom)
-  // Oldest dares (high index) go to bottom rows, newest (low index) to top
-  let dareIndex = total - 1 - index; // Flip: now 0 = oldest, high = newest
-  let rowFromBottom = 0;
+  // Find which row this dare belongs to (counting from top)
+  // Newest dares (index 0) go to top rows, oldest (high index) to bottom rows
+  let rowFromTop = 0;
   let posInRow = 0;
   let cumulative = 0;
 
   for (let r = 0; r < distribution.length; r++) {
-    if (dareIndex < cumulative + distribution[r]) {
-      rowFromBottom = r;
-      posInRow = dareIndex - cumulative;
+    if (index < cumulative + distribution[r]) {
+      rowFromTop = r;
+      posInRow = index - cumulative;
       break;
     }
     cumulative += distribution[r];
   }
 
-  const circlesInThisRow = distribution[rowFromBottom];
+  const circlesInThisRow = distribution[rowFromTop];
 
   // Center the row horizontally
   const rowWidth = circlesInThisRow * CIRCLE_SIZE + (circlesInThisRow - 1) * 15;
@@ -89,9 +92,10 @@ const getBinPosition = (index: number, total: number) => {
   const xJitter = ((index * 17) % 20) - 10;
   const left = rowStartX + posInRow * (CIRCLE_SIZE + 15) + xJitter;
 
-  // Calculate Y position - bottom row at screen bottom
-  const bottomRowTop = SCREEN_HEIGHT - BOTTOM_PADDING - CIRCLE_SIZE;
-  const top = bottomRowTop - rowFromBottom * ROW_HEIGHT;
+  // Calculate Y position - start from max allowed top position and grow downward
+  // Never place circles above 60% of screen height
+  const maxTopPosition = SCREEN_HEIGHT * MAX_TOP_POSITION_RATIO;
+  const top = maxTopPosition + rowFromTop * ROW_HEIGHT;
 
   // Slight rotation for natural "dropped" look
   const rotations = [-6, 5, -4, 7, -3, 6, -5, 4, -7, 3];
@@ -129,15 +133,18 @@ export default function YourDares() {
   // When pile grows large, we need to scroll to see all dares
   const distribution = getPyramidDistribution(completedDaresList.length);
   const totalRows = distribution.length;
-  const pileHeight = totalRows * ROW_HEIGHT;
-  // The topmost row position when pile is large
-  const topRowPosition =
-    SCREEN_HEIGHT - BOTTOM_PADDING - CIRCLE_SIZE - (totalRows - 1) * ROW_HEIGHT;
-  // If top row would go above title, we need extra scroll space
-  const contentHeight =
-    topRowPosition < TITLE_HEIGHT
-      ? SCREEN_HEIGHT + (TITLE_HEIGHT - topRowPosition)
-      : SCREEN_HEIGHT;
+  const maxTopPosition = SCREEN_HEIGHT * MAX_TOP_POSITION_RATIO;
+  
+  // Calculate the bottom of the last row
+  const bottomRowTop = maxTopPosition + (totalRows - 1) * ROW_HEIGHT;
+  const bottomRowBottom = bottomRowTop + CIRCLE_SIZE;
+  
+  // Content height should be at least the screen height, or extend to show all dares
+  // Add padding at the bottom for better scrolling experience
+  const contentHeight = Math.max(
+    SCREEN_HEIGHT,
+    bottomRowBottom + BOTTOM_PADDING
+  );
 
   const handleDarePress = (dare: any) => {
     router.push({

@@ -16,7 +16,9 @@ export const textDareIcons: Record<string, ImageSourcePropType> = {
   "Write a letter to your future self 5 years from now": require("@/assets/dare-letter.png.jpg"),
   "Create a playlist of 5 songs that tell a story": require("@/assets/dare-playlist.jpg"),
   "Write a 50-word story that ends with the word 'finally'": require("@/assets/dare-story.jpg"),
-  "Compose a haiku about your morning coffee": require("@/assets/dare-haiku.png.jpg"),
+  "Compose a haiku to James Landay": require("@/assets/dare-haiku.png.jpg"),
+  "Write a goal for your future self in 5 years": require("@/assets/dare-goal.jpg"),
+  "What advice would you give to a future CS147 student?": require("@/assets/dare-advice.jpg"),
 };
 
 // Icon mapping for video dares (React Native requires static requires)
