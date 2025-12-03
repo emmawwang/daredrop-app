@@ -19,7 +19,13 @@ import * as ImagePicker from "expo-image-picker";
 import { isVideoFile } from "@/lib/storage";
 import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
-import { Pencil, FileText, MessageCircle, Share2, Sparkles } from "lucide-react-native";
+import {
+  Pencil,
+  FileText,
+  MessageCircle,
+  Share2,
+  Sparkles,
+} from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText, getTextDareIcon } from "@/constants/dares";
@@ -193,7 +199,9 @@ export default function CompleteDare() {
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
       // Get image URI - use selectedImage if available, otherwise get from context
-      const imageUri = selectedImage || (dareType === "photo" ? getDareImage(dare) : undefined);
+      const imageUri =
+        selectedImage ||
+        (dareType === "photo" ? getDareImage(dare) : undefined);
 
       const result = await Share.share(
         {
@@ -425,9 +433,7 @@ export default function CompleteDare() {
               activeOpacity={0.8}
             >
               <Sparkles size={20} color={Colors.white} />
-              <Text style={styles.sparkNoteText}>
-                View past sparks
-              </Text>
+              <Text style={styles.sparkNoteText}>View past sparks</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -492,7 +498,7 @@ export default function CompleteDare() {
                         onPress={handleComplete}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonText}>complete</Text>
+                        <Text style={styles.buttonText}>Complete</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -556,7 +562,7 @@ export default function CompleteDare() {
                     activeOpacity={0.8}
                     disabled={!reflectionText.trim()}
                   >
-                    <Text style={styles.buttonText}>complete</Text>
+                    <Text style={styles.buttonText}>Complete</Text>
                   </TouchableOpacity>
 
                   {reflectionText.length > 0 && (
