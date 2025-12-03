@@ -183,14 +183,14 @@ const DrawingCanvas = forwardRef<DrawingCanvasRef, DrawingCanvasProps>(
           onPress={undoLastPath}
           disabled={paths.length === 0}
         >
-          <Text style={styles.toolButtonText}>Undo</Text>
+          <Text style={styles.undoButtonText}>Undo</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.toolButton, styles.clearButton]}
           onPress={clearDrawing}
           disabled={paths.length === 0 && currentPath.length === 0}
         >
-          <Text style={styles.toolButtonText}>Clear</Text>
+          <Text style={styles.clearButtonText}>Clear</Text>
         </TouchableOpacity>
       </View>
 
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: "row",
-    gap: 12,
+    gap: 20,
     width: "100%",
     justifyContent: "center",
   },
@@ -269,17 +269,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   undoButton: {
-    backgroundColor: Colors.accent.yellow,
+    backgroundColor: Colors.primary[500],
     borderColor: Colors.primary[500],
   },
   clearButton: {
-    backgroundColor: "transparent",
-    borderColor: Colors.secondary[500],
+    backgroundColor: Colors.primary[500],
+    borderColor: Colors.primary[500],
   },
-  toolButtonText: {
+  undoButtonText: {
     fontSize: 16,
     fontFamily: Fonts.secondary.semiBold,
-    color: Colors.primary[500],
+    color: Colors.white,
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.white,
   },
   canvasContainer: {
     width: CANVAS_WIDTH,

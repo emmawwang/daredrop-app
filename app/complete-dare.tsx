@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
   dareText: {
     fontSize: 18,
     fontFamily: Fonts.secondary.regular,
-    color: Colors.text.dark,
+    color: Colors.primary[500],
     lineHeight: 24,
   },
   photoOptions: {
