@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { Colors, Shadows, BorderRadius, Fonts } from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
 import { RefreshCw } from "lucide-react-native";
+import Svg, { Polygon } from "react-native-svg";
 
 interface EnvelopeAnimationProps {
   dare: string;
@@ -198,16 +199,28 @@ export default function EnvelopeAnimation({
           {/* Envelope Back Layer */}
           <Animated.View style={[styles.envelopeBack, envelopeAnimatedStyle]} />
 
-          {/* Envelope Front Layer with fold lines */}
-          <Animated.View style={[styles.envelopeFront, envelopeAnimatedStyle]}>
-            {/* Diagonal fold lines */}
-            <View style={styles.foldLineLeft} />
-            <View style={styles.foldLineRight} />
-          </Animated.View>
+          {/* Envelope Front Layer */}
+          <Animated.View
+            style={[styles.envelopeFront, envelopeAnimatedStyle]}
+          />
 
           {/* Envelope Flap (rotates open) */}
           <Animated.View style={[styles.flap, flapAnimatedStyle]}>
-            <View style={styles.flapTriangle} />
+            <Svg
+              width={ENVELOPE_WIDTH}
+              height={ENVELOPE_HEIGHT * 0.6}
+              viewBox={`0 0 ${ENVELOPE_WIDTH} ${ENVELOPE_HEIGHT * 0.6}`}
+            >
+              {/* Triangle pointing down */}
+              <Polygon
+                points={`0,0 ${ENVELOPE_WIDTH},0 ${ENVELOPE_WIDTH / 2},${
+                  ENVELOPE_HEIGHT * 0.5
+                }`}
+                fill={Colors.envelope}
+                stroke={Colors.envelopeOutline}
+                strokeWidth="2"
+              />
+            </Svg>
           </Animated.View>
 
           {/* Logo Seal */}
@@ -305,91 +318,40 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.envelope,
     borderWidth: 2,
     borderColor: Colors.envelopeOutline,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.sm,
     top: 0,
     zIndex: 1,
     ...Shadows.medium,
   },
-  // Front layer with triangular sides
+  // Front layer (transparent, for potential future use)
   envelopeFront: {
     position: "absolute",
     width: ENVELOPE_WIDTH,
     height: ENVELOPE_HEIGHT,
     top: 0,
     zIndex: 2,
-  },
-  foldLineLeft: {
-    position: "absolute",
-    left: 3,
-    bottom: ENVELOPE_HEIGHT / 2,
-    width: Math.sqrt(
-      Math.pow(ENVELOPE_WIDTH / 2, 2) + Math.pow(ENVELOPE_HEIGHT / 2, 2)
-    ),
-    height: 2.5,
-    backgroundColor: Colors.envelopeOutline,
-    transform: [
-      {
-        rotate: `${
-          -Math.atan(ENVELOPE_HEIGHT / 2 / (ENVELOPE_WIDTH / 2)) *
-          (180 / Math.PI)
-        }deg`,
-      },
-    ],
-    transformOrigin: "left center",
-  },
-  foldLineRight: {
-    position: "absolute",
-    right: 3,
-    bottom: ENVELOPE_HEIGHT / 2,
-    width: Math.sqrt(
-      Math.pow(ENVELOPE_WIDTH / 2, 2) + Math.pow(ENVELOPE_HEIGHT / 2, 2)
-    ),
-    height: 2.5,
-    backgroundColor: Colors.envelopeOutline,
-    transform: [
-      {
-        rotate: `${
-          Math.atan(ENVELOPE_HEIGHT / 2 / (ENVELOPE_WIDTH / 2)) *
-          (180 / Math.PI)
-        }deg`,
-      },
-    ],
-    transformOrigin: "right center",
+    overflow: "hidden",
   },
   // Top flap that rotates
   flap: {
     position: "absolute",
-    top: 0,
+    top: 1,
     left: 0,
-    width: ENVELOPE_WIDTH,
+    width: ENVELOPE_WIDTH * 0.8,
     height: ENVELOPE_HEIGHT * 0.5,
     transformOrigin: "top center",
     zIndex: 3,
-  },
-  flapTriangle: {
-    width: 0,
-    height: 0,
-    backgroundColor: "transparent",
-    // Create triangle shape with borders
-    borderLeftWidth: ENVELOPE_WIDTH / 2 + 1.5,
-    borderRightWidth: ENVELOPE_WIDTH / 2 + 1.5,
-    borderTopWidth: ENVELOPE_HEIGHT * 0.5,
-    borderBottomWidth: 0,
-    borderLeftColor: Colors.envelopeOutline,
-    borderRightColor: Colors.envelopeOutline,
-    borderTopColor: Colors.envelope,
-    borderBottomColor: "transparent",
-    borderStyle: "solid",
+    ...Shadows.small,
   },
   // Logo seal
   sealContainer: {
     position: "absolute",
-    top: ENVELOPE_HEIGHT * 0.3,
+    top: ENVELOPE_HEIGHT * 0.25,
     zIndex: 10,
     alignItems: "center",
     justifyContent: "center",
-    width: 110,
-    height: 110,
+    width: 150,
+    height: 150,
   },
   sealImage: {
     width: "100%",
