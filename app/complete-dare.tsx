@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as Sharing from "expo-sharing";
 import { isVideoFile } from "@/lib/storage";
 import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +25,7 @@ import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText, getTextDareIcon } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
+import DrawingCanvas, { DrawingCanvasRef } from "@/components/DrawingCanvas";
 
 export default function CompleteDare() {
   const router = useRouter();
@@ -58,19 +60,28 @@ export default function CompleteDare() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [drawingImage, setDrawingImage] = useState<string | null>(
+    dareType === "drawing" ? existingImage || null : null
+  );
+  const [isDrawingActive, setIsDrawingActive] = useState(false);
+  const drawingCanvasRef = useRef<DrawingCanvasRef>(null);
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
     if (alreadyCompleted) {
       if (existingImage) {
-        setSelectedImage(existingImage);
+        if (dareType === "drawing") {
+          setDrawingImage(existingImage);
+        } else {
+          setSelectedImage(existingImage);
+        }
       }
       if (existingReflection) {
         setReflectionText(existingReflection);
       }
       setIsCompleted(true);
     }
-  }, [alreadyCompleted, existingImage, existingReflection]);
+  }, [alreadyCompleted, existingImage, existingReflection, dareType]);
 
   // Load existing reflection or draft if editing
   useEffect(() => {
@@ -144,17 +155,36 @@ export default function CompleteDare() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (dareType === "photo" && selectedImage) {
       markDareComplete(dare, { imageUri: selectedImage });
+      setIsCompleted(true);
     } else if (dareType === "text" && reflectionText.trim()) {
       markDareComplete(dare, { reflectionText: reflectionText.trim() });
+      setIsCompleted(true);
+    } else if (dareType === "drawing") {
+      // Export drawing and save it
+      const exportedImage = await drawingCanvasRef.current?.exportDrawing();
+      if (exportedImage) {
+        setDrawingImage(exportedImage);
+        markDareComplete(dare, { imageUri: exportedImage });
+        setIsCompleted(true);
+      } else {
+        Alert.alert(
+          "Error",
+          "Unable to save your drawing. Please try again."
+        );
+      }
     }
-    setIsCompleted(true);
   };
 
   const handleRetake = () => {
     setSelectedImage(null);
+  };
+
+  const handleRedraw = () => {
+    setDrawingImage(null);
+    drawingCanvasRef.current?.clearDrawing();
   };
 
   const handleClearText = () => {
@@ -192,31 +222,80 @@ export default function CompleteDare() {
 
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      // Get image URI - use selectedImage if available, otherwise get from context
-      const imageUri = selectedImage || (dareType === "photo" ? getDareImage(dare) : undefined);
+      // Get image URI - use selectedImage/drawingImage if available, otherwise get from context
+      const imageUri = 
+        selectedImage || 
+        drawingImage || 
+        (dareType === "photo" || dareType === "drawing" ? getDareImage(dare) : undefined);
 
-      const result = await Share.share(
-        {
-          message: message,
-          // On iOS, you can also share URLs and other content
-          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-        },
-        {
-          // On Android, you can specify a dialog title
-          ...(Platform.OS === "android"
-            ? { dialogTitle: "Share your dare!" }
-            : {}),
-        }
-      );
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // Shared with activity type of result.activityType
+      // On Android, if we have an image, use expo-sharing to share the file
+      if (Platform.OS === "android" && imageUri) {
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          // For local files, share directly
+          if (imageUri.startsWith("file://") || imageUri.startsWith("content://")) {
+            await Sharing.shareAsync(imageUri, {
+              mimeType: "image/png",
+              dialogTitle: "Share your dare!",
+            });
+          } else if (imageUri.startsWith("http")) {
+            // For remote URLs (Supabase), share the message with URL
+            await Share.share(
+              {
+                message: `${message}\n\n${imageUri}`,
+              },
+              {
+                dialogTitle: "Share your dare!",
+              }
+            );
+          } else {
+            // Fallback to text-only share
+            await Share.share(
+              {
+                message: message,
+              },
+              {
+                dialogTitle: "Share your dare!",
+              }
+            );
+          }
         } else {
-          // Shared
+          // Sharing not available, fallback to text
+          await Share.share(
+            {
+              message: message,
+            },
+            {
+              dialogTitle: "Share your dare!",
+            }
+          );
         }
-      } else if (result.action === Share.dismissedAction) {
-        // Dismissed
+      } else {
+        // iOS or no image - use standard Share API
+        const result = await Share.share(
+          {
+            message: message,
+            // On iOS, you can also share URLs and other content
+            ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
+          },
+          {
+            // On Android, you can specify a dialog title
+            ...(Platform.OS === "android"
+              ? { dialogTitle: "Share your dare!" }
+              : {}),
+          }
+        );
+
+        if (result.action === Share.sharedAction) {
+          if (result.activityType) {
+            // Shared with activity type of result.activityType
+          } else {
+            // Shared
+          }
+        } else if (result.action === Share.dismissedAction) {
+          // Dismissed
+        }
       }
     } catch (error: any) {
       Alert.alert("Error", "Failed to share dare");
@@ -227,7 +306,10 @@ export default function CompleteDare() {
   const handleEditDare = () => {
     setShowEditModal(false);
     setIsCompleted(false);
-    // Keep the image/reflection so user can see it and decide to retake/reedit or keep it
+    // Keep the image/drawing/reflection so user can see it and decide to retake/reedit or keep it
+    if (dareType === "drawing" && drawingImage) {
+      // Keep drawing image for preview, but allow redraw
+    }
   };
 
   const handleDeleteDare = () => {
@@ -279,6 +361,23 @@ export default function CompleteDare() {
                     style={styles.thumbnail}
                   />
                 )}
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show thumbnail for drawing dares */}
+            {dareType === "drawing" && drawingImage && (
+              <View style={styles.thumbnailContainer}>
+                <Image
+                  source={{ uri: drawingImage }}
+                  style={styles.thumbnail}
+                />
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -444,6 +543,8 @@ export default function CompleteDare() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={!isDrawingActive}
+          nestedScrollEnabled={false}
         >
           <View style={styles.container}>
             {/* Back Button */}
@@ -527,6 +628,58 @@ export default function CompleteDare() {
                         Choose from{"\n"}Camera Roll!
                       </Text>
                     </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Drawing Dare Flow */}
+            {dareType === "drawing" && (
+              <>
+                {drawingImage ? (
+                  <View style={styles.imagePreview}>
+                    <Image
+                      source={{ uri: drawingImage }}
+                      style={styles.previewImage}
+                    />
+
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>Complete</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.retakeButton}
+                        onPress={handleRedraw}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonTextDark}>Redraw</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.drawingContainer}>
+                    <DrawingCanvas
+                      ref={drawingCanvasRef}
+                      onDrawingComplete={(imageUri) => {
+                        setDrawingImage(imageUri);
+                      }}
+                      onDrawingStart={() => setIsDrawingActive(true)}
+                      onDrawingEnd={() => setIsDrawingActive(false)}
+                    />
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>complete</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
               </>
@@ -636,7 +789,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary[500],
     padding: 24,
     marginTop: 100,
-    marginBottom: 50,
+    marginBottom: 20, // Reduced from 50 to decrease space below "Your Dare Today" box
   },
   dareTitle: {
     fontSize: 24,
@@ -938,5 +1091,11 @@ const styles = StyleSheet.create({
   },
   completeButtonDisabled: {
     opacity: 0.5,
+  },
+  drawingContainer: {
+    width: "100%",
+    alignItems: "center",
+    gap: 20,
+    marginTop: 10, // Reduced from 20 to decrease space above drawing container (Undo/Clear buttons)
   },
 });
