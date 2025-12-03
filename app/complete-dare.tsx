@@ -29,7 +29,7 @@ import {
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
-import { getDareByText, getTextDareIcon } from "@/constants/dares";
+import { getDareByText, getTextDareIcon, getVideoDareIcon } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import DrawingCanvas, { DrawingCanvasRef } from "@/components/DrawingCanvas";
 
@@ -39,6 +39,7 @@ export default function CompleteDare() {
   const dare = params.dare as string;
   const alreadyCompleted = params.completed === "true";
   const existingImage = params.imageUri as string | undefined;
+  const existingVideo = params.videoUri as string | undefined;
   const existingReflection = params.reflectionText as string | undefined;
 
   const {
@@ -48,6 +49,7 @@ export default function CompleteDare() {
     setHighlightedDare,
     getDareReflection,
     getDareDraft,
+    getDareVideo,
     getDareImage,
   } = useDare();
 
@@ -58,6 +60,9 @@ export default function CompleteDare() {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(
     existingImage || null
+  );
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(
+    existingVideo || null
   );
   const [reflectionText, setReflectionText] = useState<string>(
     existingReflection || ""
@@ -82,12 +87,25 @@ export default function CompleteDare() {
           setSelectedImage(existingImage);
         }
       }
+      if (existingVideo) {
+        setSelectedVideo(existingVideo);
+      }
       if (existingReflection) {
         setReflectionText(existingReflection);
       }
       setIsCompleted(true);
     }
-  }, [alreadyCompleted, existingImage, existingReflection, dareType]);
+  }, [alreadyCompleted, existingImage, existingVideo, existingReflection, dareType]);
+
+  // Load existing video if editing
+  useEffect(() => {
+    if (dareType === "video" && !existingVideo) {
+      const savedVideo = getDareVideo(dare);
+      if (savedVideo) {
+        setSelectedVideo(savedVideo);
+      }
+    }
+  }, [dare, dareType]);
 
   // Load existing reflection or draft if editing
   useEffect(() => {
@@ -161,19 +179,53 @@ export default function CompleteDare() {
     }
   };
 
+  const recordVideo = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.8,
+      videoMaxDuration: 60, // 60 seconds max
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedVideo(result.assets[0].uri);
+    }
+  };
+
+  const chooseVideoFromLibrary = async () => {
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setSelectedVideo(result.assets[0].uri);
+    }
+  };
+
   const handleComplete = async () => {
     if (dareType === "photo" && selectedImage) {
-      markDareComplete(dare, { imageUri: selectedImage });
+      await markDareComplete(dare, { imageUri: selectedImage });
+      setIsCompleted(true);
+    } else if (dareType === "video" && selectedVideo) {
+      await markDareComplete(dare, { videoUri: selectedVideo });
       setIsCompleted(true);
     } else if (dareType === "text" && reflectionText.trim()) {
-      markDareComplete(dare, { reflectionText: reflectionText.trim() });
+      await markDareComplete(dare, { reflectionText: reflectionText.trim() });
       setIsCompleted(true);
     } else if (dareType === "drawing") {
       // Export drawing and save it
       const exportedImage = await drawingCanvasRef.current?.exportDrawing();
       if (exportedImage) {
         setDrawingImage(exportedImage);
-        markDareComplete(dare, { imageUri: exportedImage });
+        await markDareComplete(dare, { imageUri: exportedImage });
         setIsCompleted(true);
       } else {
         Alert.alert(
@@ -186,6 +238,7 @@ export default function CompleteDare() {
 
   const handleRetake = () => {
     setSelectedImage(null);
+    setSelectedVideo(null);
   };
 
   const handleRedraw = () => {
@@ -219,108 +272,72 @@ export default function CompleteDare() {
   const handleShare = async () => {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dare}"`;
-
-      // Get reflection text - use state if available, otherwise get from context
+  
+      // Include reflection text if present
       const reflection = reflectionText || getDareReflection(dare);
       if (reflection) {
         message += `\n\nMy reflection:\n"${reflection}"`;
       }
-
+  
       message += `\n\nJoin me in being creative every day with DareDrop!`;
-
-      // Get image URI - use selectedImage if available, otherwise get from context
-      const imageUri =
+  
+      // Determine media (VIDEO → IMAGE → NOTHING)
+      const videoUriToShare =
+        selectedVideo || (dareType === "video" ? getDareVideo(dare) : undefined);
+  
+      const imageUriToShare =
         selectedImage ||
-        (dareType === "photo" ? getDareImage(dare) : undefined);
+        drawingImage ||
+        (dareType === "photo" || dareType === "drawing" ? getDareImage(dare) : undefined);
 
-      const result = await Share.share(
-        {
-          message: message,
-          // On iOS, you can also share URLs and other content
-          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-        },
-        {
-          // On Android, you can specify a dialog title
-          ...(Platform.OS === "android"
-            ? { dialogTitle: "Share your dare!" }
-            : {}),
-        }
-      );
+      // Priority: Video → Image (photo or drawing) → Text only
+      const shareUrl: string | undefined =
+        videoUriToShare || imageUriToShare || undefined;
 
-      // On Android, if we have an image, use expo-sharing to share the file
-      if (Platform.OS === "android" && imageUri) {
+      // On Android, if we have an image or video, use expo-sharing to share the file
+      if (Platform.OS === "android" && shareUrl) {
         // Check if sharing is available
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           // For local files, share directly
-          if (imageUri.startsWith("file://") || imageUri.startsWith("content://")) {
-            await Sharing.shareAsync(imageUri, {
-              mimeType: "image/png",
+          if (shareUrl.startsWith("file://") || shareUrl.startsWith("content://")) {
+            const mimeType = videoUriToShare ? "video/mp4" : "image/png";
+            await Sharing.shareAsync(shareUrl, {
+              mimeType: mimeType,
               dialogTitle: "Share your dare!",
             });
-          } else if (imageUri.startsWith("http")) {
+            return;
+          } else if (shareUrl.startsWith("http")) {
             // For remote URLs (Supabase), share the message with URL
             await Share.share(
               {
-                message: `${message}\n\n${imageUri}`,
+                message: `${message}\n\n${shareUrl}`,
               },
               {
                 dialogTitle: "Share your dare!",
               }
             );
-          } else {
-            // Fallback to text-only share
-            await Share.share(
-              {
-                message: message,
-              },
-              {
-                dialogTitle: "Share your dare!",
-              }
-            );
+            return;
           }
-        } else {
-          // Sharing not available, fallback to text
-          await Share.share(
-            {
-              message: message,
-            },
-            {
-              dialogTitle: "Share your dare!",
-            }
-          );
-        }
-      } else {
-        // iOS or no image - use standard Share API
-        const result = await Share.share(
-          {
-            message: message,
-            // On iOS, you can also share URLs and other content
-            ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-          },
-          {
-            // On Android, you can specify a dialog title
-            ...(Platform.OS === "android"
-              ? { dialogTitle: "Share your dare!" }
-              : {}),
-          }
-        );
-
-        if (result.action === Share.sharedAction) {
-          if (result.activityType) {
-            // Shared with activity type of result.activityType
-          } else {
-            // Shared
-          }
-        } else if (result.action === Share.dismissedAction) {
-          // Dismissed
         }
       }
+
+      // Build payload for standard Share API
+      const sharePayload: any = { message };
+  
+      // Add attachment if available (works on iOS, fallback for Android)
+      if (shareUrl) {
+        sharePayload.url = shareUrl;
+      }
+  
+      await Share.share(sharePayload, {
+        dialogTitle: "Share your dare!",
+      });
     } catch (error: any) {
       Alert.alert("Error", "Failed to share dare");
       console.error(error);
     }
-  };
+  };  
 
   const handleEditDare = () => {
     setShowEditModal(false);
@@ -339,6 +356,8 @@ export default function CompleteDare() {
   const handleConfirmDeletion = () => {
     deleteDare(dare);
     setSelectedImage(null);
+    setSelectedVideo(null);
+    setReflectionText("");
     setIsCompleted(false);
     setShowDeleteConfirmation(false);
     setShowDeleteSuccess(true);
@@ -348,6 +367,13 @@ export default function CompleteDare() {
       router.back();
     }, 1500);
   };
+
+  const canComplete =
+    dareType === "photo"
+      ? !!selectedImage
+      : dareType === "video"
+        ? !!selectedVideo
+        : reflectionText.trim().length > 0;
 
   if (isCompleted) {
     return (
@@ -424,6 +450,29 @@ export default function CompleteDare() {
                     />
                   </View>
                 )}
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show icon for video dares */}
+            {dareType === "video" && (
+              <View style={styles.thumbnailContainer}>
+                {getVideoDareIcon(dare) ? (
+                  <Image
+                    source={getVideoDareIcon(dare)!}
+                    style={styles.thumbnail}
+                  />
+                ) : selectedVideo ? (
+                  <View style={styles.videoIconContainer}>
+                    <Ionicons name="videocam" size={48} color={Colors.primary[500]} />
+                  </View>
+                ) : null}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -639,6 +688,62 @@ export default function CompleteDare() {
                     <TouchableOpacity
                       style={styles.photoButton}
                       onPress={chooseFromLibrary}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>
+                        Choose from{"\n"}Camera Roll!
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Video Dare Flow */}
+            {dareType === "video" && (
+              <>
+                {selectedVideo ? (
+                  <View style={styles.imagePreview}>
+                    <Text style={styles.videoPreviewText}>Video Selected</Text>
+                    <Text style={styles.videoPreviewSubtext}>
+                      Ready to complete your dare!
+                    </Text>
+
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>Complete</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.retakeButton}
+                        onPress={handleRetake}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonTextDark}>
+                          {selectedVideo.includes("camera")
+                            ? "Retake"
+                            : "Reselect"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.photoOptions}>
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={recordVideo}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoButtonText}>Record a video!</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      onPress={chooseVideoFromLibrary}
                       activeOpacity={0.8}
                     >
                       <Text style={styles.photoButtonText}>
@@ -957,6 +1062,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
+  },
+  videoIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: Colors.white,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoPreviewText: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  videoPreviewSubtext: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[600],
+    textAlign: "center",
+    marginBottom: 20,
   },
   pencilButton: {
     position: "absolute",

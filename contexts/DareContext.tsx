@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
+import * as FileSystem from "expo-file-system/legacy";
 import { uploadMediaToSupabase, deleteMediaFromSupabase } from "@/lib/storage";
 
 interface DareData {
@@ -13,6 +14,7 @@ interface DareData {
   dare_text: string;
   completed: boolean;
   image_uri?: string;
+  video_uri?: string;
   reflection_text?: string;
   draft_text?: string;
   completed_at?: string;
@@ -21,6 +23,7 @@ interface DareData {
 interface CompletedDareData {
   completed: boolean;
   imageUri?: string;
+  videoUri?: string;
   reflectionText?: string;
   draftText?: string;
   completedAt?: string;
@@ -32,12 +35,14 @@ interface DareContextType {
   highlightedDareId: string | null;
   markDareComplete: (
     dare: string,
-    options?: { imageUri?: string; reflectionText?: string }
+    options?: { imageUri?: string; videoUri?: string; reflectionText?: string }
   ) => Promise<void>;
+  uploadVideo: (videoUri: string, dare: string) => Promise<string>;
   saveDraft: (dare: string, draftText: string) => Promise<void>;
   isDareCompleted: (dare: string) => boolean;
   isDareInProgress: (dare: string) => boolean;
   getDareImage: (dare: string) => string | undefined;
+  getDareVideo: (dare: string) => string | undefined;
   getDareReflection: (dare: string) => string | undefined;
   getDareDraft: (dare: string) => string | undefined;
   getDareDate: (dare: string) => string | undefined;
@@ -138,6 +143,7 @@ export function DareProvider({ children }: { children: ReactNode }) {
           daresMap[dare.dare_text] = {
             completed: dare.completed,
             imageUri: dare.image_uri,
+            videoUri: dare.video_uri,
             reflectionText: dare.reflection_text,
             draftText: dare.draft_text,
             completedAt: dare.completed_at,
@@ -159,9 +165,80 @@ export function DareProvider({ children }: { children: ReactNode }) {
     loadDares();
   }, []);
 
+  const uploadVideo = async (videoUri: string, dare: string): Promise<string> => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+  
+      // Unique filename
+      const timestamp = Date.now();
+      const filename = `${user.id}/${dare.replace(/[^a-zA-Z0-9]/g, "_")}_${timestamp}.mp4`;
+  
+      // Read the video file as base64
+      const base64 = await FileSystem.readAsStringAsync(videoUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+      // Convert base64 to Uint8Array (binary data) - React Native compatible
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      let bufferLength = base64.length * 0.75;
+      if (base64[base64.length - 1] === '=') {
+        bufferLength--;
+        if (base64[base64.length - 2] === '=') {
+          bufferLength--;
+        }
+      }
+      
+      const bytes = new Uint8Array(bufferLength);
+      let p = 0;
+      for (let i = 0; i < base64.length; i += 4) {
+        const encoded1 = chars.indexOf(base64[i]);
+        const encoded2 = chars.indexOf(base64[i + 1]);
+        const encoded3 = chars.indexOf(base64[i + 2]);
+        const encoded4 = chars.indexOf(base64[i + 3]);
+        
+        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+        if (encoded3 !== 64) bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+        if (encoded4 !== 64) bytes[p++] = ((encoded3 & 3) << 6) | encoded4;
+      }
+  
+      // Upload using Supabase Storage REST API with proper binary data
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
+      const filePath = encodeURIComponent(filename);
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/dare-videos/${filePath}`;
+  
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'video/mp4',
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+        },
+        body: bytes,
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Upload error response:', errorText);
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+      }
+  
+      return `dare-videos/${filename}`;
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      throw error;
+    }
+  };
+
   const markDareComplete = async (
     dare: string,
-    options?: { imageUri?: string; reflectionText?: string }
+    options?: { imageUri?: string; videoUri?: string; reflectionText?: string }
   ) => {
     try {
       const {
@@ -170,10 +247,11 @@ export function DareProvider({ children }: { children: ReactNode }) {
       if (!user) return;
 
       const wasAlreadyCompleted = completedDares[dare]?.completed || false;
-      const { imageUri, reflectionText } = options || {};
-      let uploadedUrl = imageUri;
+      let imageUri = options?.imageUri;
+      let videoUri = options?.videoUri;
+      let reflectionText = options?.reflectionText;
 
-      // Upload media to Supabase Storage if it's a local file
+      // Upload image to Supabase Storage if it's a local file
       if (imageUri && !imageUri.includes("supabase.co")) {
         const dareId = `dare_${Date.now()}_${Math.random()
           .toString(36)
@@ -185,34 +263,47 @@ export function DareProvider({ children }: { children: ReactNode }) {
         );
 
         if (uploadResult) {
-          uploadedUrl = uploadResult;
+          imageUri = uploadResult;
         } else {
-          console.error("Failed to upload media, falling back to local URI");
-          uploadedUrl = imageUri; // Fallback to local URI
+          console.error("Failed to upload image, falling back to local URI");
+        }
+      }
+
+      // If videoUri is a local file, upload it to Supabase Storage using our custom function
+      if (videoUri && (videoUri.startsWith("file://") || videoUri.startsWith("content://"))) {
+        try {
+          const uploadedUrl = await uploadVideo(videoUri, dare);
+          videoUri = uploadedUrl;
+        } catch (error) {
+          console.error("Error uploading video:", error);
+          throw error;
         }
       }
 
       // Check if dare already exists in database
       const { data: existingDare } = await supabase
         .from("dares")
-        .select("id, completed, image_uri")
+        .select("id, completed, image_uri, video_uri")
         .eq("user_id", user.id)
         .eq("dare_text", dare)
         .single();
 
       if (existingDare) {
         // Delete old media from storage if updating with new media
-        if (existingDare.image_uri && uploadedUrl !== existingDare.image_uri) {
+        if (existingDare.image_uri && imageUri !== existingDare.image_uri) {
           await deleteMediaFromSupabase(existingDare.image_uri);
         }
+        if (existingDare.video_uri && videoUri !== existingDare.video_uri) {
+          // Note: Video deletion would need to be implemented if needed
+        }
 
-        // Update existing dare
         // Update existing dare - clear draft when completing
         const { error } = await supabase
           .from("dares")
           .update({
             completed: true,
-            image_uri: uploadedUrl,
+            image_uri: imageUri,
+            video_uri: videoUri,
             reflection_text: reflectionText,
             draft_text: null, // Clear draft on completion
             completed_at: new Date().toISOString(),
@@ -227,7 +318,8 @@ export function DareProvider({ children }: { children: ReactNode }) {
           user_id: user.id,
           dare_text: dare,
           completed: true,
-          image_uri: uploadedUrl,
+          image_uri: imageUri,
+          video_uri: videoUri,
           reflection_text: reflectionText,
           completed_at: new Date().toISOString(),
         });
@@ -241,7 +333,8 @@ export function DareProvider({ children }: { children: ReactNode }) {
           ...prev,
           [dare]: {
             completed: true,
-            imageUri: uploadedUrl,
+            imageUri,
+            videoUri,
             reflectionText,
             draftText: undefined, // Clear draft on completion
             completedAt: new Date().toISOString(),
@@ -328,6 +421,10 @@ export function DareProvider({ children }: { children: ReactNode }) {
     return completedDares[dare]?.imageUri;
   };
 
+  const getDareVideo = (dare: string) => {
+    return completedDares[dare]?.videoUri;
+  };
+
   const getDareReflection = (dare: string) => {
     return completedDares[dare]?.reflectionText;
   };
@@ -389,10 +486,12 @@ export function DareProvider({ children }: { children: ReactNode }) {
         streakDays,
         highlightedDareId,
         markDareComplete,
+        uploadVideo,
         saveDraft,
         isDareCompleted,
         isDareInProgress,
         getDareImage,
+        getDareVideo,
         getDareReflection,
         getDareDraft,
         getDareDate,

@@ -1,7 +1,7 @@
 import { ImageSourcePropType } from "react-native";
 
 // Dare types
-export type DareType = "photo" | "text" | "drawing";
+export type DareType = "photo" | "text" | "video" | "drawing";
 
 export interface Dare {
   id: string;
@@ -17,6 +17,11 @@ export const textDareIcons: Record<string, ImageSourcePropType> = {
   "Create a playlist of 5 songs that tell a story": require("@/assets/dare-playlist.jpg"),
   "Write a 50-word story that ends with the word 'finally'": require("@/assets/dare-story.jpg"),
   "Compose a haiku about your morning coffee": require("@/assets/dare-haiku.png.jpg"),
+};
+
+// Icon mapping for video dares (React Native requires static requires)
+export const videoDareIcons: Record<string, ImageSourcePropType> = {
+  "Tell yourself a joke and record your reaction": require("@/assets/dare-joke.jpeg"),
 };
 
 // Sample dares - these will later be fetched from an API or database
@@ -76,6 +81,11 @@ export const sampleDares: Dare[] = [
     type: "text",
     placeholder: "5 syllables, 7 syllables, 5 syllables...",
   },
+  {
+    id: "11",
+    text: "Tell yourself a joke and record your reaction",
+    type: "video",
+  }
 ];
 
 /**
@@ -115,4 +125,13 @@ export function getTextDareIcon(
   dareText: string
 ): ImageSourcePropType | undefined {
   return textDareIcons[dareText];
+}
+
+/**
+ * Get icon for a video dare
+ */
+export function getVideoDareIcon(
+  dareText: string
+): ImageSourcePropType | undefined {
+  return videoDareIcons[dareText];
 }

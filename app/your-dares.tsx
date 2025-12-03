@@ -13,7 +13,7 @@ import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, Shadows } from "@/constants/theme";
-import { getTextDareIcon } from "@/constants/dares";
+import { getTextDareIcon, getVideoDareIcon, getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -112,6 +112,7 @@ export default function YourDares() {
       .map(([dare, data]) => ({
         id: dare,
         image: data.imageUri,
+        videoUri: data.videoUri,
         reflectionText: data.reflectionText,
         completed: data.completed,
         completedAt: data.completedAt,
@@ -206,6 +207,11 @@ export default function YourDares() {
                       source={{ uri: dare.image }}
                       style={styles.dareImage}
                     />
+                  ) : dare.videoUri && getVideoDareIcon(dare.id) ? (
+                    <Image
+                      source={getVideoDareIcon(dare.id)!}
+                      style={styles.dareImage}
+                    />
                   ) : dare.reflectionText && getTextDareIcon(dare.id) ? (
                     <Image
                       source={getTextDareIcon(dare.id)!}
@@ -219,7 +225,7 @@ export default function YourDares() {
                       ]}
                     >
                       <Text style={styles.placeholderEmoji}>
-                        {dare.reflectionText ? "💬" : "📸"}
+                        {dare.videoUri ? "🎥" : dare.reflectionText ? "💬" : "📸"}
                       </Text>
                     </View>
                   )}

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   View,
   Text,
@@ -33,7 +34,7 @@ export default function DareDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const dareText = params.dare as string;
-  const { getDareImage, getDareReflection, getDareDate, deleteDare } =
+  const { getDareImage, getDareVideo, getDareReflection, getDareDate, deleteDare, loadDares } =
     useDare();
 
   // Get dare type
@@ -41,8 +42,67 @@ export default function DareDetail() {
   const dareType = dareInfo?.type || "photo";
 
   const imageUri = getDareImage(dareText);
+  const videoPath = getDareVideo(dareText);
   const reflectionText = getDareReflection(dareText);
   const dareDate = getDareDate(dareText);
+  const videoRef = useRef<Video>(null);
+  const [videoUri, setVideoUri] = useState<string | undefined>(undefined);
+  const [videoError, setVideoError] = useState<string | undefined>(undefined);
+
+  // Reload dares when component mounts to ensure we have latest data
+  useEffect(() => {
+    loadDares();
+  }, []);
+
+  // Get signed URL for video if it's stored in Supabase Storage
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      if (!videoPath) {
+        console.log("No video path found for dare:", dareText);
+        setVideoUri(undefined);
+        setVideoError(undefined);
+        return;
+      }
+
+      console.log("Loading video from path:", videoPath);
+
+      // If it's already a full URL, use it directly
+      if (videoPath.startsWith("http://") || videoPath.startsWith("https://")) {
+        console.log("Using direct URL:", videoPath);
+        setVideoUri(videoPath);
+        setVideoError(undefined);
+        return;
+      }
+
+      // If it's a storage path, get a signed URL
+      if (videoPath.startsWith("dare-videos/")) {
+        const path = videoPath.replace("dare-videos/", "");
+        console.log("Creating signed URL for path:", path);
+        
+        const { data, error } = await supabase.storage
+          .from("dare-videos")
+          .createSignedUrl(path, 3600); // 1 hour expiry
+
+        if (error || !data) {
+          console.error("Error getting signed URL:", error);
+          setVideoError(error?.message || "Failed to load video");
+          setVideoUri(undefined);
+          return;
+        }
+
+        console.log("Successfully created signed URL");
+        setVideoUri(data.signedUrl);
+        setVideoError(undefined);
+      } else {
+        // Local file path
+        console.log("Using local file path:", videoPath);
+        setVideoUri(videoPath);
+        setVideoError(undefined);
+      }
+    };
+
+    getSignedUrl();
+  }, [videoPath, dareText]);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -51,87 +111,60 @@ export default function DareDetail() {
   const handleShare = async () => {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dareText}"`;
-
+  
       if (reflectionText) {
         message += `\n\nMy reflection:\n"${reflectionText}"`;
       }
-
+  
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      // On Android, if we have an image, use expo-sharing to share the file
-      if (Platform.OS === "android" && imageUri) {
+      // Choose best share media - Priority: Video → Image → Text only
+      const shareUrl: string | undefined = videoUri || imageUri || undefined;
+
+      // On Android, if we have an image or video, use expo-sharing to share the file
+      if (Platform.OS === "android" && shareUrl) {
         // Check if sharing is available
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           // For local files, share directly
-          if (imageUri.startsWith("file://") || imageUri.startsWith("content://")) {
-            await Sharing.shareAsync(imageUri, {
-              mimeType: "image/png",
+          if (shareUrl.startsWith("file://") || shareUrl.startsWith("content://")) {
+            const mimeType = videoUri ? "video/mp4" : "image/png";
+            await Sharing.shareAsync(shareUrl, {
+              mimeType: mimeType,
               dialogTitle: "Share your dare!",
             });
-          } else if (imageUri.startsWith("http")) {
+            return;
+          } else if (shareUrl.startsWith("http")) {
             // For remote URLs (Supabase), share the message with URL
             await Share.share(
               {
-                message: `${message}\n\n${imageUri}`,
+                message: `${message}\n\n${shareUrl}`,
               },
               {
                 dialogTitle: "Share your dare!",
               }
             );
-          } else {
-            // Fallback to text-only share
-            await Share.share(
-              {
-                message: message,
-              },
-              {
-                dialogTitle: "Share your dare!",
-              }
-            );
+            return;
           }
-        } else {
-          // Sharing not available, fallback to text
-          await Share.share(
-            {
-              message: message,
-            },
-            {
-              dialogTitle: "Share your dare!",
-            }
-          );
-        }
-      } else {
-        // iOS or no image - use standard Share API
-        const result = await Share.share(
-          {
-            message: message,
-            // On iOS, you can also share URLs and other content
-            ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-          },
-          {
-            // On Android, you can specify a dialog title
-            ...(Platform.OS === "android"
-              ? { dialogTitle: "Share your dare!" }
-              : {}),
-          }
-        );
-
-        if (result.action === Share.sharedAction) {
-          if (result.activityType) {
-            // Shared with activity type of result.activityType
-          } else {
-            // Shared
-          }
-        } else if (result.action === Share.dismissedAction) {
-          // Dismissed
         }
       }
+
+      // Build payload for standard Share API
+      const sharePayload: any = { message };
+  
+      if (shareUrl) {
+        sharePayload.url = shareUrl; // Works on both platforms
+      }
+  
+      await Share.share(sharePayload, {
+        dialogTitle: "Share your dare!",
+      });
     } catch (error: any) {
       Alert.alert("Error", "Failed to share dare");
       console.error(error);
     }
   };
+  
 
   const handleEditDare = () => {
     setShowEditModal(false);
@@ -142,6 +175,7 @@ export default function DareDetail() {
         dare: dareText,
         completed: "false",
         imageUri: imageUri,
+        videoUri: videoUri,
         reflectionText: reflectionText,
       },
     });
@@ -230,7 +264,7 @@ export default function DareDetail() {
             <Text style={styles.dareText}>{dareText}</Text>
           </View>
 
-          {/* Content Display - Photo, Drawing, or Text Reflection */}
+          {/* Content Display - Photo, Video, Drawing, or Text Reflection */}
           {dareType === "photo" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Creation:</Text>
@@ -255,6 +289,52 @@ export default function DareDetail() {
                 </TouchableOpacity>
               </View>
             </View>
+          ) : dareType === "video" ? (
+            videoUri ? (
+              <View style={styles.videoContainer}>
+                <Text style={styles.sectionLabel}>Your Creation</Text>
+                <View style={styles.videoWrapper}>
+                  <Video
+                    ref={videoRef}
+                    source={{ uri: videoUri }}
+                    style={styles.dareVideo}
+                    useNativeControls
+                    resizeMode={ResizeMode.CONTAIN}
+                    isLooping={false}
+                    onError={(error) => {
+                      console.error("Video playback error:", error);
+                      setVideoError("Failed to play video");
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.pencilButton}
+                    activeOpacity={0.7}
+                    onPress={() => setShowEditModal(true)}
+                  >
+                    <Pencil color={Colors.primary[500]} size={18} />
+                  </TouchableOpacity>
+                </View>
+                {videoError && (
+                  <Text style={styles.errorText}>{videoError}</Text>
+                )}
+              </View>
+            ) : videoError ? (
+              <View style={styles.videoContainer}>
+                <Text style={styles.sectionLabel}>Your Creation</Text>
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>
+                    Unable to load video: {videoError}
+                  </Text>
+                </View>
+              </View>
+            ) : videoPath ? (
+              <View style={styles.videoContainer}>
+                <Text style={styles.sectionLabel}>Your Creation</Text>
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>Loading video...</Text>
+                </View>
+              </View>
+            ) : null
           ) : dareType === "drawing" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Drawing:</Text>
@@ -289,14 +369,22 @@ export default function DareDetail() {
           ) : (
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
-                {dareType === "photo" ? "📸" : dareType === "drawing" ? "🎨" : "✍️"}
+                {(() => {
+                  const type = dareType as "photo" | "video" | "drawing" | "text";
+                  if (type === "photo") return "📸";
+                  if (type === "video") return "🎥";
+                  if (type === "drawing") return "🎨";
+                  return "✍️";
+                })()}
               </Text>
               <Text style={styles.noContentText}>
-                {dareType === "photo"
-                  ? "No photo added for this dare"
-                  : dareType === "drawing"
-                  ? "No drawing added for this dare"
-                  : "No reflection added for this dare"}
+                {(() => {
+                  const type = dareType as "photo" | "video" | "drawing" | "text";
+                  if (type === "photo") return "No photo added for this dare";
+                  if (type === "video") return "No video added for this dare";
+                  if (type === "drawing") return "No drawing added for this dare";
+                  return "No reflection added for this dare";
+                })()}
               </Text>
             </View>
           )}
@@ -490,6 +578,53 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primary[500],
     ...Shadows.large,
+  },
+  videoContainer: {
+    marginBottom: 24,
+  },
+  videoWrapper: {
+    position: "relative",
+  },
+  dareVideo: {
+    width: "100%",
+    height: 350,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 3,
+    borderColor: Colors.primary[500],
+    backgroundColor: Colors.primary[500],
+    ...Shadows.large,
+  },
+  errorContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: Colors.secondary[500],
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 200,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.secondary[500],
+    textAlign: "center",
+  },
+  loadingContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: Colors.primary[500],
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 200,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.primary[500],
+    textAlign: "center",
   },
   pencilButton: {
     position: "absolute",

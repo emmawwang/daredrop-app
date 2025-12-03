@@ -17,7 +17,7 @@ import {
   FontSizes,
   Fonts,
 } from "@/constants/theme";
-import { getTextDareIcon } from "@/constants/dares";
+import { getTextDareIcon, getVideoDareIcon } from "@/constants/dares";
 
 const { width } = Dimensions.get("window");
 
@@ -30,6 +30,7 @@ const MAX_DARES = 11;
 interface DareHistoryItem {
   id: string;
   image?: string;
+  videoUri?: string;
   reflectionText?: string;
   completed: boolean;
 }
@@ -268,11 +269,18 @@ function DareCircle({
         >
           {dare.image ? (
             <Image source={{ uri: dare.image }} style={styles.dareImage} />
+          ) : dare.videoUri && getVideoDareIcon(dare.id) ? (
+            <Image
+              source={getVideoDareIcon(dare.id)!}
+              style={styles.dareImage}
+            />
           ) : dare.reflectionText && getTextDareIcon(dare.id) ? (
             <Image
               source={getTextDareIcon(dare.id)!}
               style={styles.dareImage}
             />
+          ) : dare.videoUri ? (
+            <Text style={styles.darePlaceholder}>🎥</Text>
           ) : dare.reflectionText ? (
             <Text style={styles.darePlaceholder}>💬</Text>
           ) : (
