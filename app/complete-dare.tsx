@@ -29,7 +29,11 @@ import {
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
-import { getDareByText, getTextDareIcon, getVideoDareIcon } from "@/constants/dares";
+import {
+  getDareByText,
+  getTextDareIcon,
+  getVideoDareIcon,
+} from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import DrawingCanvas, { DrawingCanvasRef } from "@/components/DrawingCanvas";
 
@@ -95,7 +99,13 @@ export default function CompleteDare() {
       }
       setIsCompleted(true);
     }
-  }, [alreadyCompleted, existingImage, existingVideo, existingReflection, dareType]);
+  }, [
+    alreadyCompleted,
+    existingImage,
+    existingVideo,
+    existingReflection,
+    dareType,
+  ]);
 
   // Load existing video if editing
   useEffect(() => {
@@ -222,16 +232,17 @@ export default function CompleteDare() {
       setIsCompleted(true);
     } else if (dareType === "drawing") {
       // Export drawing and save it
-      const exportedImage = await drawingCanvasRef.current?.exportDrawing();
-      if (exportedImage) {
+      if (!drawingCanvasRef.current) {
+        Alert.alert("Error", "Unable to save your drawing. Please try again.");
+        return;
+      }
+      const exportedImage = await drawingCanvasRef.current.exportDrawing();
+      if (exportedImage && exportedImage.trim()) {
         setDrawingImage(exportedImage);
         await markDareComplete(dare, { imageUri: exportedImage });
         setIsCompleted(true);
       } else {
-        Alert.alert(
-          "Error",
-          "Unable to save your drawing. Please try again."
-        );
+        Alert.alert("Error", "Unable to save your drawing. Please try again.");
       }
     }
   };
@@ -272,23 +283,26 @@ export default function CompleteDare() {
   const handleShare = async () => {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dare}"`;
-  
+
       // Include reflection text if present
       const reflection = reflectionText || getDareReflection(dare);
       if (reflection) {
         message += `\n\nMy reflection:\n"${reflection}"`;
       }
-  
+
       message += `\n\nJoin me in being creative every day with DareDrop!`;
-  
+
       // Determine media (VIDEO → IMAGE → NOTHING)
       const videoUriToShare =
-        selectedVideo || (dareType === "video" ? getDareVideo(dare) : undefined);
-  
+        selectedVideo ||
+        (dareType === "video" ? getDareVideo(dare) : undefined);
+
       const imageUriToShare =
         selectedImage ||
         drawingImage ||
-        (dareType === "photo" || dareType === "drawing" ? getDareImage(dare) : undefined);
+        (dareType === "photo" || dareType === "drawing"
+          ? getDareImage(dare)
+          : undefined);
 
       // Priority: Video → Image (photo or drawing) → Text only
       const shareUrl: string | undefined =
@@ -300,7 +314,10 @@ export default function CompleteDare() {
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           // For local files, share directly
-          if (shareUrl.startsWith("file://") || shareUrl.startsWith("content://")) {
+          if (
+            shareUrl.startsWith("file://") ||
+            shareUrl.startsWith("content://")
+          ) {
             const mimeType = videoUriToShare ? "video/mp4" : "image/png";
             await Sharing.shareAsync(shareUrl, {
               mimeType: mimeType,
@@ -324,12 +341,12 @@ export default function CompleteDare() {
 
       // Build payload for standard Share API
       const sharePayload: any = { message };
-  
+
       // Add attachment if available (works on iOS, fallback for Android)
       if (shareUrl) {
         sharePayload.url = shareUrl;
       }
-  
+
       await Share.share(sharePayload, {
         dialogTitle: "Share your dare!",
       });
@@ -337,7 +354,7 @@ export default function CompleteDare() {
       Alert.alert("Error", "Failed to share dare");
       console.error(error);
     }
-  };  
+  };
 
   const handleEditDare = () => {
     setShowEditModal(false);
@@ -372,8 +389,8 @@ export default function CompleteDare() {
     dareType === "photo"
       ? !!selectedImage
       : dareType === "video"
-        ? !!selectedVideo
-        : reflectionText.trim().length > 0;
+      ? !!selectedVideo
+      : reflectionText.trim().length > 0;
 
   if (isCompleted) {
     return (
@@ -470,7 +487,11 @@ export default function CompleteDare() {
                   />
                 ) : selectedVideo ? (
                   <View style={styles.videoIconContainer}>
-                    <Ionicons name="videocam" size={48} color={Colors.primary[500]} />
+                    <Ionicons
+                      name="videocam"
+                      size={48}
+                      color={Colors.primary[500]}
+                    />
                   </View>
                 ) : null}
                 <TouchableOpacity
@@ -738,7 +759,9 @@ export default function CompleteDare() {
                       onPress={recordVideo}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.photoButtonText}>Record a video!</Text>
+                      <Text style={styles.photoButtonText}>
+                        Record a video!
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity

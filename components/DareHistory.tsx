@@ -135,7 +135,7 @@ export default function DareHistory({
       {isEmpty ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            Complete dares to fill your collection! 🎨
+            Complete dares to fill your collection!
           </Text>
         </View>
       ) : (
