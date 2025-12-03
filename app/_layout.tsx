@@ -82,10 +82,10 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <DareProvider>
-        <StatusBar style="dark" />
+    <DareProvider>
+      <StatusBar style="dark" />
         <RootLayoutNav />
-      </DareProvider>
+    </DareProvider>
     </AuthProvider>
   );
 }

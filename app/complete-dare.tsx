@@ -20,7 +20,13 @@ import * as Sharing from "expo-sharing";
 import { isVideoFile } from "@/lib/storage";
 import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
-import { Pencil, FileText, MessageCircle, Share2, Sparkles } from "lucide-react-native";
+import {
+  Pencil,
+  FileText,
+  MessageCircle,
+  Share2,
+  Sparkles,
+} from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText, getTextDareIcon } from "@/constants/dares";
@@ -222,11 +228,24 @@ export default function CompleteDare() {
 
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      // Get image URI - use selectedImage/drawingImage if available, otherwise get from context
-      const imageUri = 
-        selectedImage || 
-        drawingImage || 
-        (dareType === "photo" || dareType === "drawing" ? getDareImage(dare) : undefined);
+      // Get image URI - use selectedImage if available, otherwise get from context
+      const imageUri =
+        selectedImage ||
+        (dareType === "photo" ? getDareImage(dare) : undefined);
+
+      const result = await Share.share(
+        {
+          message: message,
+          // On iOS, you can also share URLs and other content
+          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
+        },
+        {
+          // On Android, you can specify a dialog title
+          ...(Platform.OS === "android"
+            ? { dialogTitle: "Share your dare!" }
+            : {}),
+        }
+      );
 
       // On Android, if we have an image, use expo-sharing to share the file
       if (Platform.OS === "android" && imageUri) {
@@ -524,9 +543,7 @@ export default function CompleteDare() {
               activeOpacity={0.8}
             >
               <Sparkles size={20} color={Colors.white} />
-              <Text style={styles.sparkNoteText}>
-                View past sparks
-              </Text>
+              <Text style={styles.sparkNoteText}>View past sparks</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -593,7 +610,7 @@ export default function CompleteDare() {
                         onPress={handleComplete}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonText}>complete</Text>
+                        <Text style={styles.buttonText}>Complete</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -709,7 +726,7 @@ export default function CompleteDare() {
                     activeOpacity={0.8}
                     disabled={!reflectionText.trim()}
                   >
-                    <Text style={styles.buttonText}>complete</Text>
+                    <Text style={styles.buttonText}>Complete</Text>
                   </TouchableOpacity>
 
                   {reflectionText.length > 0 && (
@@ -785,7 +802,7 @@ const styles = StyleSheet.create({
   dareCard: {
     backgroundColor: Colors.accent.yellow,
     borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
     padding: 24,
     marginTop: 100,

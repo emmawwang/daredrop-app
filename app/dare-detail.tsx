@@ -168,18 +168,31 @@ export default function DareDetail() {
 
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
+    // Check if same day (Today)
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
 
-    return date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    if (isToday) return "Today";
+
+    // Check if yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    if (isYesterday) return "Yesterday";
+
+    // Format as MM/DD/YY for older dates
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
+
+    return `${month}/${day}/${year}`;
   };
 
   const hasContent = imageUri || reflectionText;
@@ -301,8 +314,8 @@ export default function DareDetail() {
           {/* Motivational Message */}
           <View style={styles.messageCard}>
             <Text style={styles.messageText}>
-              Keep the creative streak going! Every dare brings out your unique
-              creativity.
+              Keep the creative streak going!{"\n"}Every dare brings out your
+              unique creativity.
             </Text>
           </View>
         </View>
@@ -474,7 +487,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 350,
     borderRadius: BorderRadius.xl,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
     ...Shadows.large,
   },
@@ -501,9 +514,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     padding: 24,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: Colors.primary[500],
-    ...Shadows.large,
+    ...Shadows.small,
   },
   reflectionHeader: {
     alignItems: "center",
@@ -571,11 +584,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent.green,
     borderRadius: BorderRadius.lg,
     padding: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.primary[400],
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
   },
   messageText: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[600],
     textAlign: "center",
