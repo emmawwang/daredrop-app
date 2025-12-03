@@ -50,7 +50,14 @@ export default function Home() {
         image: data.imageUri,
         reflectionText: data.reflectionText,
         completed: data.completed,
-      }));
+        completedAt: data.completedAt,
+      }))
+      .sort((a, b) => {
+        // Sort by completedAt descending (newest first = top of pile)
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        return dateB - dateA;
+      });
   }, [completedDares]);
 
   return (
