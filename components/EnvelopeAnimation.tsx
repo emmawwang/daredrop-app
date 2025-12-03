@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 10,
-    marginBottom: 5,
+    marginBottom: 1,
   },
   envelopeWrapper: {
     position: "relative",
