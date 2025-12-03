@@ -16,7 +16,6 @@ import { Video, ResizeMode } from "expo-av";
 import { isVideoFile } from "@/lib/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Share2,
