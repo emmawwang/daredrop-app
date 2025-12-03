@@ -12,6 +12,7 @@ import {
   Modal,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
+import * as Sharing from "expo-sharing";
 import { isVideoFile } from "@/lib/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -57,28 +58,74 @@ export default function DareDetail() {
 
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      const result = await Share.share(
-        {
-          message: message,
-          // On iOS, you can also share URLs and other content
-          ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
-        },
-        {
-          // On Android, you can specify a dialog title
-          ...(Platform.OS === "android"
-            ? { dialogTitle: "Share your dare!" }
-            : {}),
-        }
-      );
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // Shared with activity type of result.activityType
+      // On Android, if we have an image, use expo-sharing to share the file
+      if (Platform.OS === "android" && imageUri) {
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          // For local files, share directly
+          if (imageUri.startsWith("file://") || imageUri.startsWith("content://")) {
+            await Sharing.shareAsync(imageUri, {
+              mimeType: "image/png",
+              dialogTitle: "Share your dare!",
+            });
+          } else if (imageUri.startsWith("http")) {
+            // For remote URLs (Supabase), share the message with URL
+            await Share.share(
+              {
+                message: `${message}\n\n${imageUri}`,
+              },
+              {
+                dialogTitle: "Share your dare!",
+              }
+            );
+          } else {
+            // Fallback to text-only share
+            await Share.share(
+              {
+                message: message,
+              },
+              {
+                dialogTitle: "Share your dare!",
+              }
+            );
+          }
         } else {
-          // Shared
+          // Sharing not available, fallback to text
+          await Share.share(
+            {
+              message: message,
+            },
+            {
+              dialogTitle: "Share your dare!",
+            }
+          );
         }
-      } else if (result.action === Share.dismissedAction) {
-        // Dismissed
+      } else {
+        // iOS or no image - use standard Share API
+        const result = await Share.share(
+          {
+            message: message,
+            // On iOS, you can also share URLs and other content
+            ...(Platform.OS === "ios" && imageUri ? { url: imageUri } : {}),
+          },
+          {
+            // On Android, you can specify a dialog title
+            ...(Platform.OS === "android"
+              ? { dialogTitle: "Share your dare!" }
+              : {}),
+          }
+        );
+
+        if (result.action === Share.sharedAction) {
+          if (result.activityType) {
+            // Shared with activity type of result.activityType
+          } else {
+            // Shared
+          }
+        } else if (result.action === Share.dismissedAction) {
+          // Dismissed
+        }
       }
     } catch (error: any) {
       Alert.alert("Error", "Failed to share dare");
@@ -183,7 +230,7 @@ export default function DareDetail() {
             <Text style={styles.dareText}>{dareText}</Text>
           </View>
 
-          {/* Content Display - Photo or Text Reflection */}
+          {/* Content Display - Photo, Drawing, or Text Reflection */}
           {dareType === "photo" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Creation:</Text>
@@ -199,6 +246,20 @@ export default function DareDetail() {
                 ) : (
                   <Image source={{ uri: imageUri }} style={styles.dareImage} />
                 )}
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={18} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : dareType === "drawing" && imageUri ? (
+            <View style={styles.imageContainer}>
+              <Text style={styles.sectionLabel}>Your Drawing:</Text>
+              <View style={styles.imageWrapper}>
+                <Image source={{ uri: imageUri }} style={styles.dareImage} />
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -228,11 +289,13 @@ export default function DareDetail() {
           ) : (
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
-                {dareType === "photo" ? "📸" : "✍️"}
+                {dareType === "photo" ? "📸" : dareType === "drawing" ? "🎨" : "✍️"}
               </Text>
               <Text style={styles.noContentText}>
                 {dareType === "photo"
                   ? "No photo added for this dare"
+                  : dareType === "drawing"
+                  ? "No drawing added for this dare"
                   : "No reflection added for this dare"}
               </Text>
             </View>

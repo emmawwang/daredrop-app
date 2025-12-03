@@ -1,7 +1,7 @@
 import { ImageSourcePropType } from "react-native";
 
 // Dare types
-export type DareType = "photo" | "text";
+export type DareType = "photo" | "text" | "drawing";
 
 export interface Dare {
   id: string;
@@ -35,7 +35,7 @@ export const sampleDares: Dare[] = [
   {
     id: "3",
     text: "Design a logo for an imaginary company using only circles",
-    type: "photo",
+    type: "drawing",
   },
   {
     id: "4",
@@ -46,7 +46,7 @@ export const sampleDares: Dare[] = [
   {
     id: "5",
     text: "Sketch your favorite place from memory",
-    type: "photo",
+    type: "drawing",
   },
   {
     id: "6",
@@ -57,7 +57,7 @@ export const sampleDares: Dare[] = [
   {
     id: "7",
     text: "Draw a self-portrait using only geometric shapes",
-    type: "photo",
+    type: "drawing",
   },
   {
     id: "8",
