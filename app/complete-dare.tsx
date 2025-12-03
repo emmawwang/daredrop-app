@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
 import { isVideoFile } from "@/lib/storage";
 import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
@@ -77,6 +78,7 @@ export default function CompleteDare() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [showVideoSizeError, setShowVideoSizeError] = useState(false);
   const [drawingImage, setDrawingImage] = useState<string | null>(
     dareType === "drawing" ? existingImage || null : null
   );
@@ -161,6 +163,33 @@ export default function CompleteDare() {
     return true;
   };
 
+  const checkVideoFileSize = async (
+    videoUri: string,
+    fileSize?: number
+  ): Promise<boolean> => {
+    try {
+      let size: number | undefined = fileSize;
+      
+      // If fileSize wasn't provided, try to get it from FileSystem
+      if (size === undefined) {
+        const fileInfo = await FileSystem.getInfoAsync(videoUri);
+        if (fileInfo.exists && fileInfo.size !== undefined) {
+          size = fileInfo.size;
+        }
+      }
+      
+      if (size !== undefined) {
+        const maxSizeBytes = 50 * 1024 * 1024; // 50 MB in bytes
+        return size <= maxSizeBytes;
+      }
+      
+      return true; // If we can't determine size, allow it (will fail on upload)
+    } catch (error) {
+      console.error("Error checking file size:", error);
+      return true; // If we can't check size, allow it (will fail on upload)
+    }
+  };
+
   const takePhoto = async () => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) return;
@@ -205,7 +234,16 @@ export default function CompleteDare() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setSelectedVideo(result.assets[0].uri);
+      const videoUri = result.assets[0].uri;
+      const fileSize = (result.assets[0] as any).fileSize;
+      const isValidSize = await checkVideoFileSize(videoUri, fileSize);
+      
+      if (!isValidSize) {
+        setShowVideoSizeError(true);
+        return; // Don't set the video, user stays on selection screen
+      }
+      
+      setSelectedVideo(videoUri);
     }
   };
 
@@ -220,7 +258,16 @@ export default function CompleteDare() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setSelectedVideo(result.assets[0].uri);
+      const videoUri = result.assets[0].uri;
+      const fileSize = (result.assets[0] as any).fileSize;
+      const isValidSize = await checkVideoFileSize(videoUri, fileSize);
+      
+      if (!isValidSize) {
+        setShowVideoSizeError(true);
+        return; // Don't set the video, user stays on selection screen
+      }
+      
+      setSelectedVideo(videoUri);
     }
   };
 
@@ -292,7 +339,14 @@ export default function CompleteDare() {
     if (isCompleted && dare) {
       setHighlightedDare(dare);
     }
-    router.back();
+    router.push("/");
+  };
+
+  const handleGoBackToDareDetail = () => {
+    router.push({
+      pathname: "/dare-detail",
+      params: { dare },
+    });
   };
 
   const handleShare = async () => {
@@ -411,6 +465,16 @@ export default function CompleteDare() {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.congratsContainer}>
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleGoBackToDareDetail}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+
+          {/* Home Button */}
           <TopRightButton style={styles.homeButton} onPress={handleGoHome}>
             <Ionicons name="home" size={24} color={Colors.primary[500]} />
           </TopRightButton>
@@ -934,6 +998,33 @@ export default function CompleteDare() {
                 : "Completing dare..."
         }
       />
+
+      {/* Video Size Error Modal */}
+      <Modal
+        visible={showVideoSizeError}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowVideoSizeError(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowVideoSizeError(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.confirmationTitle}>
+              Video is too large! Please reselect a video that is less than 50MB.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => setShowVideoSizeError(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalOptionText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1279,7 +1370,7 @@ const styles = StyleSheet.create({
   },
   confirmationTitle: {
     fontSize: 20,
-    fontFamily: Fonts.secondary.bold,
+    fontFamily: Fonts.secondary.regular,
     color: Colors.primary[500],
     textAlign: "center",
     marginBottom: 20,
