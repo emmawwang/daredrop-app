@@ -88,6 +88,17 @@ export const sampleDares: Dare[] = [
     text: "Tell yourself a joke and record your reaction",
     type: "video",
   },
+  {
+    id: "12",
+    text: "Create a playlist of 5 songs that tell a story",
+    type: "text",
+    placeholder: "What's the story? What are the songs?",
+  },
+  {
+    id: "13",
+    text: "Find an old photo of people you love",
+    type: "photo",
+  },
 ];
 
 /**

@@ -232,18 +232,23 @@ export default function CompleteDare() {
       setIsCompleted(true);
     } else if (dareType === "drawing") {
       // Export drawing and save it
-      if (!drawingCanvasRef.current) {
+      let imageToSave = drawingImage; // Use existing image if available
+
+      if (drawingCanvasRef.current) {
+        const exportedImage = await drawingCanvasRef.current.exportDrawing();
+        if (exportedImage && exportedImage.trim()) {
+          imageToSave = exportedImage;
+          setDrawingImage(exportedImage);
+        }
+      }
+
+      if (!imageToSave || !imageToSave.trim()) {
         Alert.alert("Error", "Unable to save your drawing. Please try again.");
         return;
       }
-      const exportedImage = await drawingCanvasRef.current.exportDrawing();
-      if (exportedImage && exportedImage.trim()) {
-        setDrawingImage(exportedImage);
-        await markDareComplete(dare, { imageUri: exportedImage });
-        setIsCompleted(true);
-      } else {
-        Alert.alert("Error", "Unable to save your drawing. Please try again.");
-      }
+
+      await markDareComplete(dare, { imageUri: imageToSave });
+      setIsCompleted(true);
     }
   };
 
