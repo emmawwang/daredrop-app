@@ -26,6 +26,7 @@ import {
   FileText,
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
@@ -48,11 +49,40 @@ export default function DareDetail() {
   const videoRef = useRef<Video>(null);
   const [videoUri, setVideoUri] = useState<string | undefined>(undefined);
   const [videoError, setVideoError] = useState<string | undefined>(undefined);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reload dares when component mounts to ensure we have latest data
   useEffect(() => {
     loadDares();
   }, []);
+
+  // Timeout fallback to ensure loading state doesn't get stuck
+  useEffect(() => {
+    if (isLoadingMedia) {
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      // Set a timeout to reset loading state after 10 seconds (fallback)
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.warn("Loading timeout - resetting loading state");
+        setIsLoadingMedia(false);
+      }, 10000);
+    } else {
+      // Clear timeout when loading completes
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    }
+
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isLoadingMedia]);
 
   // Get signed URL for video if it's stored in Supabase Storage
   useEffect(() => {
@@ -61,16 +91,19 @@ export default function DareDetail() {
         console.log("No video path found for dare:", dareText);
         setVideoUri(undefined);
         setVideoError(undefined);
+        setIsLoadingMedia(false);
         return;
       }
 
       console.log("Loading video from path:", videoPath);
+      setIsLoadingMedia(true);
 
       // If it's already a full URL, use it directly
       if (videoPath.startsWith("http://") || videoPath.startsWith("https://")) {
         console.log("Using direct URL:", videoPath);
         setVideoUri(videoPath);
         setVideoError(undefined);
+        setIsLoadingMedia(false);
         return;
       }
 
@@ -79,25 +112,35 @@ export default function DareDetail() {
         const path = videoPath.replace("dare-videos/", "");
         console.log("Creating signed URL for path:", path);
         
-        const { data, error } = await supabase.storage
-          .from("dare-videos")
-          .createSignedUrl(path, 3600); // 1 hour expiry
+        try {
+          const { data, error } = await supabase.storage
+            .from("dare-videos")
+            .createSignedUrl(path, 3600); // 1 hour expiry
 
-        if (error || !data) {
-          console.error("Error getting signed URL:", error);
-          setVideoError(error?.message || "Failed to load video");
+          if (error || !data) {
+            console.error("Error getting signed URL:", error);
+            setVideoError(error?.message || "Failed to load video");
+            setVideoUri(undefined);
+            setIsLoadingMedia(false);
+            return;
+          }
+
+          console.log("Successfully created signed URL");
+          setVideoUri(data.signedUrl);
+          setVideoError(undefined);
+          setIsLoadingMedia(false);
+        } catch (error) {
+          console.error("Error in getSignedUrl:", error);
+          setVideoError("Failed to load video");
           setVideoUri(undefined);
-          return;
+          setIsLoadingMedia(false);
         }
-
-        console.log("Successfully created signed URL");
-        setVideoUri(data.signedUrl);
-        setVideoError(undefined);
       } else {
         // Local file path
         console.log("Using local file path:", videoPath);
         setVideoUri(videoPath);
         setVideoError(undefined);
+        setIsLoadingMedia(false);
       }
     };
 
@@ -278,7 +321,19 @@ export default function DareDetail() {
                     isLooping
                   />
                 ) : (
-                  <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={styles.dareImage}
+                    onLoadStart={() => {
+                      if (imageUri?.startsWith("http://") || imageUri?.startsWith("https://")) {
+                        setIsLoadingMedia(true);
+                      }
+                    }}
+                    onLoad={() => setIsLoadingMedia(false)}
+                    onError={() => {
+                      setIsLoadingMedia(false);
+                    }}
+                  />
                 )}
                 <TouchableOpacity
                   style={styles.pencilButton}
@@ -301,11 +356,23 @@ export default function DareDetail() {
                     useNativeControls
                     resizeMode={ResizeMode.CONTAIN}
                     isLooping={false}
+                    onLoadStart={() => setIsLoadingMedia(true)}
+                    onReadyForDisplay={() => setIsLoadingMedia(false)}
                     onError={(error) => {
                       console.error("Video playback error:", error);
                       setVideoError("Failed to play video");
+                      setIsLoadingMedia(false);
                     }}
                   />
+                  {isLoadingMedia && (
+                    <View style={styles.videoLoadingOverlay}>
+                      <Image
+                        source={require("@/assets/logo.png")}
+                        style={styles.videoLoadingLogo}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  )}
                   <TouchableOpacity
                     style={styles.pencilButton}
                     activeOpacity={0.7}
@@ -327,19 +394,24 @@ export default function DareDetail() {
                   </Text>
                 </View>
               </View>
-            ) : videoPath ? (
-              <View style={styles.videoContainer}>
-                <Text style={styles.sectionLabel}>Your Creation</Text>
-                <View style={styles.loadingContainer}>
-                  <Text style={styles.loadingText}>Loading video...</Text>
-                </View>
-              </View>
             ) : null
           ) : dareType === "drawing" && imageUri ? (
             <View style={styles.imageContainer}>
               <Text style={styles.sectionLabel}>Your Drawing:</Text>
               <View style={styles.imageWrapper}>
-                <Image source={{ uri: imageUri }} style={styles.dareImage} />
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.dareImage}
+                  onLoadStart={() => {
+                    if (imageUri?.startsWith("http://") || imageUri?.startsWith("https://")) {
+                      setIsLoadingMedia(true);
+                    }
+                  }}
+                  onLoad={() => setIsLoadingMedia(false)}
+                  onError={() => {
+                    setIsLoadingMedia(false);
+                  }}
+                />
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -408,6 +480,18 @@ export default function DareDetail() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        visible={isLoadingMedia}
+        message={
+          dareType === "video"
+            ? "Loading video..."
+            : dareType === "photo" || dareType === "drawing"
+              ? "Loading image..."
+              : undefined
+        }
+      />
 
       {/* Edit Modal */}
       <Modal
@@ -591,8 +675,24 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 3,
     borderColor: Colors.primary[500],
-    backgroundColor: Colors.primary[500],
+    backgroundColor: "transparent",
     ...Shadows.large,
+  },
+  videoLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: BorderRadius.xl,
+  },
+  videoLoadingLogo: {
+    width: 150,
+    height: 150,
+    opacity: 0.8,
   },
   errorContainer: {
     backgroundColor: Colors.white,

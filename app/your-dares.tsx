@@ -157,8 +157,17 @@ export default function YourDares() {
 
   return (
     <View style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.backIcon}>←</Text>
+      </TouchableOpacity>
+
       {/* Home Button */}
-      <TopRightButton style={styles.homeButton} onPress={() => router.back()}>
+      <TopRightButton style={styles.homeButton} onPress={() => router.push("/")}>
         <Ionicons name="home" size={24} color={Colors.primary[500]} />
       </TopRightButton>
 
@@ -264,6 +273,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.accent.green,
   },
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    zIndex: 100,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backIcon: {
+    fontSize: 32,
+    color: Colors.primary[500],
+  },
   homeButton: {
     position: "absolute",
     top: 60,
@@ -274,7 +297,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 100,
     position: "relative",
   },

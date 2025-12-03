@@ -28,6 +28,7 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText, getTextDareIcon, getVideoDareIcon } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
@@ -68,6 +69,7 @@ export default function CompleteDare() {
     existingReflection || ""
   );
   const [isCompleted, setIsCompleted] = useState(alreadyCompleted);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
@@ -211,28 +213,40 @@ export default function CompleteDare() {
   };
 
   const handleComplete = async () => {
-    if (dareType === "photo" && selectedImage) {
-      await markDareComplete(dare, { imageUri: selectedImage });
-      setIsCompleted(true);
-    } else if (dareType === "video" && selectedVideo) {
-      await markDareComplete(dare, { videoUri: selectedVideo });
-      setIsCompleted(true);
-    } else if (dareType === "text" && reflectionText.trim()) {
-      await markDareComplete(dare, { reflectionText: reflectionText.trim() });
-      setIsCompleted(true);
-    } else if (dareType === "drawing") {
-      // Export drawing and save it
-      const exportedImage = await drawingCanvasRef.current?.exportDrawing();
-      if (exportedImage) {
-        setDrawingImage(exportedImage);
-        await markDareComplete(dare, { imageUri: exportedImage });
+    setIsCompleting(true);
+    try {
+      if (dareType === "photo" && selectedImage) {
+        await markDareComplete(dare, { imageUri: selectedImage });
         setIsCompleted(true);
-      } else {
-        Alert.alert(
-          "Error",
-          "Unable to save your drawing. Please try again."
-        );
+        // Loading will be hidden when component re-renders with congrats screen
+      } else if (dareType === "video" && selectedVideo) {
+        await markDareComplete(dare, { videoUri: selectedVideo });
+        setIsCompleted(true);
+        // Loading will be hidden when component re-renders with congrats screen
+      } else if (dareType === "text" && reflectionText.trim()) {
+        await markDareComplete(dare, { reflectionText: reflectionText.trim() });
+        setIsCompleted(true);
+        // Loading will be hidden when component re-renders with congrats screen
+      } else if (dareType === "drawing") {
+        // Export drawing and save it
+        const exportedImage = await drawingCanvasRef.current?.exportDrawing();
+        if (exportedImage) {
+          setDrawingImage(exportedImage);
+          await markDareComplete(dare, { imageUri: exportedImage });
+          setIsCompleted(true);
+          // Loading will be hidden when component re-renders with congrats screen
+        } else {
+          setIsCompleting(false);
+          Alert.alert(
+            "Error",
+            "Unable to save your drawing. Please try again."
+          );
+        }
       }
+    } catch (error) {
+      console.error("Error completing dare:", error);
+      setIsCompleting(false);
+      Alert.alert("Error", "Failed to complete dare. Please try again.");
     }
   };
 
@@ -861,6 +875,20 @@ export default function CompleteDare() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        visible={isCompleting}
+        message={
+          dareType === "video"
+            ? "Uploading video..."
+            : dareType === "photo"
+              ? "Uploading image..."
+              : dareType === "drawing"
+                ? "Saving drawing..."
+                : "Completing dare..."
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -1163,7 +1191,7 @@ const styles = StyleSheet.create({
   modalOptionDelete: {
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: Colors.secondary[500],
+    borderColor: Colors.primary[500],
     marginBottom: 0,
   },
   modalOptionText: {
@@ -1172,7 +1200,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   modalOptionTextDelete: {
-    color: Colors.secondary[500],
+    color: Colors.primary[500],
   },
   modalOptionCancel: {
     backgroundColor: "transparent",
