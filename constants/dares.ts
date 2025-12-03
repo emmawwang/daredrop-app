@@ -19,6 +19,11 @@ export const textDareIcons: Record<string, ImageSourcePropType> = {
   "Compose a haiku about your morning coffee": require("@/assets/dare-haiku.png.jpg"),
 };
 
+// Icon mapping for video dares (React Native requires static requires)
+export const videoDareIcons: Record<string, ImageSourcePropType> = {
+  "Tell yourself a joke and record your reaction": require("@/assets/dare-joke.jpeg"),
+};
+
 // Sample dares - these will later be fetched from an API or database
 export const sampleDares: Dare[] = [
   {
@@ -120,4 +125,13 @@ export function getTextDareIcon(
   dareText: string
 ): ImageSourcePropType | undefined {
   return textDareIcons[dareText];
+}
+
+/**
+ * Get icon for a video dare
+ */
+export function getVideoDareIcon(
+  dareText: string
+): ImageSourcePropType | undefined {
+  return videoDareIcons[dareText];
 }

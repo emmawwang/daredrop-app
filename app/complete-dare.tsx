@@ -28,7 +28,7 @@ import {
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
-import { getDareByText, getTextDareIcon } from "@/constants/dares";
+import { getDareByText, getTextDareIcon, getVideoDareIcon } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 
 export default function CompleteDare() {
@@ -385,12 +385,19 @@ export default function CompleteDare() {
               </View>
             )}
 
-            {/* Show video icon for video dares */}
-            {dareType === "video" && selectedVideo && (
+            {/* Show icon for video dares */}
+            {dareType === "video" && (
               <View style={styles.thumbnailContainer}>
-                <View style={styles.videoIconContainer}>
-                  <Ionicons name="videocam" size={48} color={Colors.primary[500]} />
-                </View>
+                {getVideoDareIcon(dare) ? (
+                  <Image
+                    source={getVideoDareIcon(dare)!}
+                    style={styles.thumbnail}
+                  />
+                ) : selectedVideo ? (
+                  <View style={styles.videoIconContainer}>
+                    <Ionicons name="videocam" size={48} color={Colors.primary[500]} />
+                  </View>
+                ) : null}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
