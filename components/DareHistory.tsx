@@ -24,7 +24,9 @@ const { width } = Dimensions.get("window");
 // Mini pile constants for preview box
 const CIRCLE_SIZE = 65;
 const ROW_HEIGHT = 75;
-const BOX_WIDTH = width * 0.9 - 48; // Container width minus padding
+// Container width is min(width * 0.9, 350), minus padding (24 each side) and extra buffer
+const CONTAINER_WIDTH = Math.min(width * 0.9, 350);
+const BOX_WIDTH = CONTAINER_WIDTH - 48 - 16; // Extra 16px buffer to keep circles away from edges
 const MAX_DARES = 11;
 
 interface DareHistoryItem {
