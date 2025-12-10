@@ -37,6 +37,9 @@
       "bundler": "metro"
     },
     "scheme": "daredrop",
-    "plugins": ["expo-router"]
+    "plugins": ["expo-router"],
+    "extra": {
+      "spotifyRedirectUri": "daredrop://spotify-callback"
+    }
   }
 }

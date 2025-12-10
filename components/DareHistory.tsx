@@ -18,6 +18,7 @@ import {
   Fonts,
 } from "@/constants/theme";
 import { getTextDareIcon, getVideoDareIcon } from "@/constants/dares";
+import { parseSpotifySong } from "@/lib/spotify";
 
 const { width } = Dimensions.get("window");
 
@@ -248,6 +249,18 @@ function DareCircle({
     outputRange: [0, 4],
   });
 
+  // Check if reflectionText contains Spotify song data and extract album art
+  let spotifyAlbumArt: string | null = null;
+  if (dare.reflectionText && !dare.image) {
+    const songData = dare.reflectionText.includes("|REFLECTION|")
+      ? dare.reflectionText.split("|REFLECTION|")[0]
+      : dare.reflectionText;
+    const spotifySong = parseSpotifySong(songData);
+    if (spotifySong?.albumArt) {
+      spotifyAlbumArt = spotifySong.albumArt;
+    }
+  }
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -281,6 +294,8 @@ function DareCircle({
         >
           {dare.image ? (
             <Image source={{ uri: dare.image }} style={styles.dareImage} />
+          ) : spotifyAlbumArt ? (
+            <Image source={{ uri: spotifyAlbumArt }} style={styles.dareImage} />
           ) : dare.videoUri && getVideoDareIcon(dare.id) ? (
             <Image
               source={getVideoDareIcon(dare.id)!}
