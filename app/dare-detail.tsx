@@ -30,6 +30,13 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
 import { getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
+import {
+  parseSpotifySong,
+  formatSpotifySong,
+  SpotifySong,
+} from "@/lib/spotify";
+import { Music } from "lucide-react-native";
+import * as Linking from "expo-linking";
 
 export default function DareDetail() {
   const router = useRouter();
@@ -154,15 +161,52 @@ export default function DareDetail() {
   const handleShare = async () => {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dareText}"`;
-  
-      if (reflectionText) {
-        message += `\n\nMy reflection:\n"${reflectionText}"`;
+
+      // Handle Spotify dares specially
+      if (dareType === "spotify" && reflectionText) {
+        // Parse Spotify song from reflection text
+        const songData = reflectionText.includes("|REFLECTION|")
+          ? reflectionText.split("|REFLECTION|")[0]
+          : reflectionText;
+        const userReflection = reflectionText.includes("|REFLECTION|")
+          ? reflectionText.split("|REFLECTION|")[1]
+          : null;
+        const song = parseSpotifySong(songData);
+
+        if (song) {
+          message += `\n\n`;
+          
+          // Add song info
+          message += `"${song.name}" by ${song.artist}\n\n`;
+          
+          // Add Spotify link
+          message += `${song.spotifyUrl}\n\n`;
+          
+          // Add user reflection if present
+          if (userReflection) {
+            message += `Reflection:\n"${userReflection}"\n\n`;
+          }
+        } else {
+          // Fallback if parsing fails
+          if (reflectionText) {
+            message += `\n\nMy reflection:\n"${reflectionText}"`;
+          }
+        }
+      } else {
+        // Non-Spotify dares
+        if (reflectionText) {
+          message += `\n\nMy reflection:\n"${reflectionText}"`;
+        }
       }
-  
+
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      // Choose best share media - Priority: Video → Image → Text only
-      const shareUrl: string | undefined = videoUri || imageUri || undefined;
+      // No need to share album art for Spotify dares anymore
+      let shareUrl: string | undefined = undefined;
+      if (dareType !== "spotify") {
+        // Choose best share media - Priority: Video → Image → Text only
+        shareUrl = videoUri || imageUri || undefined;
+      }
 
       // On Android, if we have an image or video, use expo-sharing to share the file
       if (Platform.OS === "android" && shareUrl) {
@@ -178,7 +222,7 @@ export default function DareDetail() {
             });
             return;
           } else if (shareUrl.startsWith("http")) {
-            // For remote URLs (Supabase), share the message with URL
+            // For remote URLs (Supabase or Spotify album art), share the message with URL
             await Share.share(
               {
                 message: `${message}\n\n${shareUrl}`,
@@ -438,23 +482,93 @@ export default function DareDetail() {
                 </TouchableOpacity>
               </View>
             </View>
+          ) : dareType === "spotify" && reflectionText ? (
+            (() => {
+              // Parse Spotify song from reflection text
+              // Format: JSON string or JSON|REFLECTION|text
+              const songData = reflectionText.includes("|REFLECTION|")
+                ? reflectionText.split("|REFLECTION|")[0]
+                : reflectionText;
+              const userReflection = reflectionText.includes("|REFLECTION|")
+                ? reflectionText.split("|REFLECTION|")[1]
+                : null;
+              const song = parseSpotifySong(songData);
+              
+              return song ? (
+                <View style={styles.spotifyContainer}>
+                  <Text style={styles.sectionLabel}>Your Song</Text>
+                  <View style={styles.spotifyCard}>
+                    {song.albumArt ? (
+                      <Image
+                        source={{ uri: song.albumArt }}
+                        style={styles.spotifyAlbumArtLarge}
+                      />
+                    ) : (
+                      <View style={[styles.spotifyAlbumArtLarge, styles.spotifyAlbumArtPlaceholder]}>
+                        <Music size={64} color={Colors.primary[500]} />
+                      </View>
+                    )}
+                    <Text style={styles.spotifySongNameLarge}>{song.name}</Text>
+                    <Text style={styles.spotifyArtistNameLarge}>{song.artist}</Text>
+                    <Text style={styles.spotifyAlbumNameLarge}>{song.album}</Text>
+                    
+                    <TouchableOpacity
+                      style={styles.spotifyButton}
+                      onPress={async () => {
+                        try {
+                          const canOpen = await Linking.canOpenURL(song.spotifyUrl);
+                          if (canOpen) {
+                            await Linking.openURL(song.spotifyUrl);
+                          } else {
+                            Alert.alert("Error", "Unable to open Spotify");
+                          }
+                        } catch (error) {
+                          Alert.alert("Error", "Failed to open Spotify");
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="musical-notes" size={20} color={Colors.white} />
+                      <Text style={styles.spotifyButtonText}>Open in Spotify</Text>
+                    </TouchableOpacity>
+
+                    {userReflection && (
+                      <View style={styles.spotifyReflectionContainer}>
+                        <Text style={styles.spotifyReflectionLabel}>Your Reflection:</Text>
+                        <Text style={styles.spotifyReflectionText}>{userReflection}</Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.pencilButtonSpotify}
+                      activeOpacity={0.7}
+                      onPress={() => setShowEditModal(true)}
+                    >
+                      <Pencil color={Colors.primary[500]} size={18} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null;
+            })()
           ) : (
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
                 {(() => {
-                  const type = dareType as "photo" | "video" | "drawing" | "text";
+                  const type = dareType as "photo" | "video" | "drawing" | "text" | "spotify";
                   if (type === "photo") return "📸";
                   if (type === "video") return "🎥";
                   if (type === "drawing") return "🎨";
+                  if (type === "spotify") return "🎵";
                   return "✍️";
                 })()}
               </Text>
               <Text style={styles.noContentText}>
                 {(() => {
-                  const type = dareType as "photo" | "video" | "drawing" | "text";
+                  const type = dareType as "photo" | "video" | "drawing" | "text" | "spotify";
                   if (type === "photo") return "No photo added for this dare";
                   if (type === "video") return "No video added for this dare";
                   if (type === "drawing") return "No drawing added for this dare";
+                  if (type === "spotify") return "No song selected for this dare";
                   return "No reflection added for this dare";
                 })()}
               </Text>
@@ -886,5 +1000,103 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary.bold,
     color: Colors.primary[500],
     textAlign: "center",
+  },
+  // Spotify styles
+  spotifyContainer: {
+    marginBottom: 24,
+  },
+  spotifyCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    alignItems: "center",
+    ...Shadows.large,
+    position: "relative",
+  },
+  spotifyAlbumArtLarge: {
+    width: 200,
+    height: 200,
+    borderRadius: BorderRadius.lg,
+    marginBottom: 16,
+    backgroundColor: Colors.gray[100],
+  },
+  spotifyAlbumArtPlaceholder: {
+    backgroundColor: Colors.gray[100],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spotifySongNameLarge: {
+    fontSize: 24,
+    fontFamily: Fonts.secondary.bold,
+    color: Colors.text.dark,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  spotifyArtistNameLarge: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  spotifyAlbumNameLarge: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[500],
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  spotifyButton: {
+    backgroundColor: Colors.secondary[500],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: BorderRadius.xl,
+    marginBottom: 20,
+    ...Shadows.medium,
+  },
+  spotifyButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.white,
+  },
+  spotifyReflectionContainer: {
+    width: "100%",
+    marginTop: 16,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray[200],
+  },
+  spotifyReflectionLabel: {
+    fontSize: 18,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    marginBottom: 8,
+  },
+  spotifyReflectionText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    lineHeight: 24,
+    fontStyle: "italic",
+  },
+  pencilButtonSpotify: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.accent.yellow,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.white,
+    ...Shadows.medium,
   },
 });

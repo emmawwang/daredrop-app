@@ -1,7 +1,7 @@
 import { ImageSourcePropType } from "react-native";
 
 // Dare types
-export type DareType = "photo" | "text" | "video" | "drawing";
+export type DareType = "photo" | "text" | "video" | "drawing" | "spotify";
 
 export interface Dare {
   id: string;
@@ -98,6 +98,31 @@ export const sampleDares: Dare[] = [
     id: "13",
     text: "Find an old photo of people you love",
     type: "photo",
+  },
+  {
+    id: "14",
+    text: "Find a song that reminds you of yourself five years ago",
+    type: "spotify",
+  },
+  {
+    id: "15",
+    text: "Find a song that describes your current mood",
+    type: "spotify",
+  },
+  {
+    id: "16",
+    text: "Find a song that makes you feel nostalgic",
+    type: "spotify",
+  },
+  {
+    id: "17",
+    text: "Find a song that represents your biggest dream",
+    type: "spotify",
+  },
+  {
+    id: "18",
+    text: "Find a song that reminds you of someone special",
+    type: "spotify",
   },
 ];
 

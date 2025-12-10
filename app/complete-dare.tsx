@@ -38,6 +38,15 @@ import {
 } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import DrawingCanvas, { DrawingCanvasRef } from "@/components/DrawingCanvas";
+import {
+  searchSongs,
+  parseSpotifySong,
+  formatSpotifySong,
+  SpotifySong,
+  authenticateSpotify,
+  isSpotifyAuthenticated,
+} from "@/lib/spotify";
+import { Music } from "lucide-react-native";
 
 export default function CompleteDare() {
   const router = useRouter();
@@ -86,6 +95,16 @@ export default function CompleteDare() {
   const drawingCanvasRef = useRef<DrawingCanvasRef>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const videoPreviewRef = useRef<Video>(null);
+  
+  // Spotify dare state
+  const [spotifySearchQuery, setSpotifySearchQuery] = useState("");
+  const [spotifySearchResults, setSpotifySearchResults] = useState<SpotifySong[]>([]);
+  const [selectedSpotifySong, setSelectedSpotifySong] = useState<SpotifySong | null>(null);
+  const [isSearchingSpotify, setIsSearchingSpotify] = useState(false);
+  const [spotifyReflection, setSpotifyReflection] = useState("");
+  const [isAuthenticatingSpotify, setIsAuthenticatingSpotify] = useState(false);
+  const [spotifyAuthenticated, setSpotifyAuthenticated] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // If already completed, show congrats screen immediately
   useEffect(() => {
@@ -138,6 +157,170 @@ export default function CompleteDare() {
       }
     }
   }, [dare, dareType]);
+
+  // Load existing Spotify song if editing
+  useEffect(() => {
+    if (dareType === "spotify") {
+      const reflection = existingReflection || getDareReflection(dare);
+      if (reflection) {
+        // Parse reflection text - format: JSON or JSON|REFLECTION|text
+        const songData = reflection.includes("|REFLECTION|")
+          ? reflection.split("|REFLECTION|")[0]
+          : reflection;
+        const userReflection = reflection.includes("|REFLECTION|")
+          ? reflection.split("|REFLECTION|")[1]
+          : "";
+        
+        const song = parseSpotifySong(songData);
+        if (song) {
+          setSelectedSpotifySong(song);
+          setSpotifyReflection(userReflection || "");
+        }
+      }
+    }
+  }, [dare, dareType, existingReflection]);
+
+  // Check Spotify authentication status when component loads
+  useEffect(() => {
+    if (dareType === "spotify") {
+      isSpotifyAuthenticated()
+        .then((authenticated) => {
+          setSpotifyAuthenticated(authenticated);
+        })
+        .catch(() => {
+          setSpotifyAuthenticated(false);
+        });
+    }
+  }, [dareType]);
+
+  // Debounced Spotify search
+  useEffect(() => {
+    if (dareType !== "spotify") return;
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // If query is empty, clear results
+    if (!spotifySearchQuery.trim()) {
+      setSpotifySearchResults([]);
+      return;
+    }
+
+    // Set loading state
+    setIsSearchingSpotify(true);
+
+    // Debounce search by 500ms
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Check authentication first
+        if (!spotifyAuthenticated) {
+          const authenticated = await isSpotifyAuthenticated();
+          if (!authenticated) {
+            // Prompt user to authenticate
+            Alert.alert(
+              "Spotify Authentication Required",
+              "You need to sign in to Spotify to search for songs. This is a one-time setup.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Sign In",
+                  onPress: async () => {
+                    setIsAuthenticatingSpotify(true);
+                    try {
+                      const success = await authenticateSpotify();
+                      if (success) {
+                        setSpotifyAuthenticated(true);
+                        // Retry search after authentication
+                        const results = await searchSongs(spotifySearchQuery, 20);
+                        setSpotifySearchResults(results);
+                      }
+                    } catch (authError: any) {
+                      Alert.alert(
+                        "Authentication Failed",
+                        authError?.message || "Failed to authenticate with Spotify. Please try again."
+                      );
+                    } finally {
+                      setIsAuthenticatingSpotify(false);
+                    }
+                  },
+                },
+              ]
+            );
+            setIsSearchingSpotify(false);
+            return;
+          }
+          setSpotifyAuthenticated(true);
+        }
+
+        const results = await searchSongs(spotifySearchQuery, 20);
+        setSpotifySearchResults(results);
+      } catch (error: any) {
+        console.error("Error searching Spotify:", error);
+        const errorMessage = error?.message || "Unknown error";
+        
+        if (errorMessage.includes("Not authenticated") || errorMessage.includes("authenticate")) {
+          setSpotifyAuthenticated(false);
+          Alert.alert(
+            "Authentication Required",
+            "Please sign in to Spotify to search for songs.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Sign In",
+                onPress: async () => {
+                  setIsAuthenticatingSpotify(true);
+                  try {
+                    const success = await authenticateSpotify();
+                    if (success) {
+                      setSpotifyAuthenticated(true);
+                      // Retry search after authentication
+                      try {
+                        const results = await searchSongs(spotifySearchQuery, 20);
+                        setSpotifySearchResults(results);
+                      } catch (retryError) {
+                        Alert.alert("Error", "Failed to search. Please try again.");
+                      }
+                    }
+                  } catch (authError: any) {
+                    Alert.alert(
+                      "Authentication Failed",
+                      authError?.message || "Failed to authenticate with Spotify."
+                    );
+                  } finally {
+                    setIsAuthenticatingSpotify(false);
+                  }
+                },
+              },
+            ]
+          );
+        } else if (errorMessage.includes("Client ID not configured")) {
+          Alert.alert(
+            "Spotify Not Configured",
+            "Spotify Client ID not found. Please:\n\n1. Create a Spotify app at https://developer.spotify.com/dashboard\n2. Add EXPO_PUBLIC_SPOTIFY_CLIENT_ID to your .env file\n3. Restart your dev server\n\nSee SPOTIFY_SETUP.md for detailed instructions.",
+            [{ text: "OK" }]
+          );
+        } else {
+          Alert.alert(
+            "Search Error",
+            errorMessage.includes("Failed to search")
+              ? errorMessage
+              : "Failed to search for songs. Please check your internet connection and try again."
+          );
+        }
+        setSpotifySearchResults([]);
+      } finally {
+        setIsSearchingSpotify(false);
+      }
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [spotifySearchQuery, dareType, spotifyAuthenticated]);
 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -301,6 +484,16 @@ export default function CompleteDare() {
             "Unable to save your drawing. Please try again."
           );
         }
+      } else if (dareType === "spotify" && selectedSpotifySong) {
+        // Store Spotify song as JSON string in reflection_text
+        // Optionally include user's reflection text
+        const songData = JSON.stringify(selectedSpotifySong);
+        const reflectionToSave = spotifyReflection.trim()
+          ? `${songData}|REFLECTION|${spotifyReflection.trim()}`
+          : songData;
+        
+        await markDareComplete(dare, { reflectionText: reflectionToSave });
+        setIsCompleted(true);
       }
     } catch (error) {
       console.error("Error completing dare:", error);
@@ -353,29 +546,76 @@ export default function CompleteDare() {
     try {
       let message = `I completed a DareDrop dare! 🎨\n\n"${dare}"`;
 
-      // Include reflection text if present
-      const reflection = reflectionText || getDareReflection(dare);
-      if (reflection) {
-        message += `\n\nMy reflection:\n"${reflection}"`;
+      // Handle Spotify dares specially
+      if (dareType === "spotify") {
+        // Use selected song if available, otherwise parse from saved reflection
+        let song: SpotifySong | null = selectedSpotifySong;
+        let userReflection: string | null = spotifyReflection || null;
+
+        if (!song) {
+          // Try to parse from saved reflection
+          const savedReflection = reflectionText || getDareReflection(dare);
+          if (savedReflection) {
+            const songData = savedReflection.includes("|REFLECTION|")
+              ? savedReflection.split("|REFLECTION|")[0]
+              : savedReflection;
+            userReflection = savedReflection.includes("|REFLECTION|")
+              ? savedReflection.split("|REFLECTION|")[1]
+              : null;
+            song = parseSpotifySong(songData);
+          }
+        }
+
+        if (song) {
+          message += `\n\n`;
+          
+          // Add song info
+          message += `${song.name}\n${song.artist}\n\n`;
+          
+          // Add Spotify link
+          message += `${song.spotifyUrl}\n\n`;
+          
+          // Add user reflection if present
+          if (userReflection && userReflection.trim()) {
+            message += `Reflection:\n"${userReflection}"\n\n`;
+          }
+        } else {
+          // Fallback if no song data
+          const reflection = reflectionText || getDareReflection(dare);
+          if (reflection) {
+            message += `\n\nMy reflection:\n"${reflection}"`;
+          }
+        }
+      } else {
+        // Non-Spotify dares
+        const reflection = reflectionText || getDareReflection(dare);
+        if (reflection) {
+          message += `\n\nMy reflection:\n"${reflection}"`;
+        }
       }
 
       message += `\n\nJoin me in being creative every day with DareDrop!`;
 
-      // Determine media (VIDEO → IMAGE → NOTHING)
-      const videoUriToShare =
-        selectedVideo ||
-        (dareType === "video" ? getDareVideo(dare) : undefined);
+      // Determine share media
+      // Don't attach album art URL for Spotify dares to avoid link preview metadata
+      let shareUrl: string | undefined = undefined;
+      
+      if (dareType !== "spotify") {
+        // Determine media (VIDEO → IMAGE → NOTHING)
+        const videoUriToShare =
+          selectedVideo ||
+          (dareType === "video" ? getDareVideo(dare) : undefined);
 
-      const imageUriToShare =
-        selectedImage ||
-        drawingImage ||
-        (dareType === "photo" || dareType === "drawing"
-          ? getDareImage(dare)
-          : undefined);
+        const imageUriToShare =
+          selectedImage ||
+          drawingImage ||
+          (dareType === "photo" || dareType === "drawing"
+            ? getDareImage(dare)
+            : undefined);
 
-      // Priority: Video → Image (photo or drawing) → Text only
-      const shareUrl: string | undefined =
-        videoUriToShare || imageUriToShare || undefined;
+        // Priority: Video → Image (photo or drawing) → Text only
+        shareUrl = videoUriToShare || imageUriToShare || undefined;
+      }
 
       // On Android, if we have an image or video, use expo-sharing to share the file
       if (Platform.OS === "android" && shareUrl) {
@@ -387,14 +627,14 @@ export default function CompleteDare() {
             shareUrl.startsWith("file://") ||
             shareUrl.startsWith("content://")
           ) {
-            const mimeType = videoUriToShare ? "video/mp4" : "image/png";
+            const mimeType = shareUrl.includes("video") ? "video/mp4" : "image/png";
             await Sharing.shareAsync(shareUrl, {
               mimeType: mimeType,
               dialogTitle: "Share your dare!",
             });
             return;
           } else if (shareUrl.startsWith("http")) {
-            // For remote URLs (Supabase), share the message with URL
+            // For remote URLs (Supabase or Spotify album art), share the message with URL
             await Share.share(
               {
                 message: `${message}\n\n${shareUrl}`,
@@ -459,6 +699,8 @@ export default function CompleteDare() {
       ? !!selectedImage
       : dareType === "video"
       ? !!selectedVideo
+      : dareType === "spotify"
+      ? !!selectedSpotifySong
       : reflectionText.trim().length > 0;
 
   if (isCompleted) {
@@ -573,6 +815,29 @@ export default function CompleteDare() {
                     />
                   </View>
                 ) : null}
+                <TouchableOpacity
+                  style={styles.pencilButton}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <Pencil color={Colors.primary[500]} size={16} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Show selected song for Spotify dares */}
+            {dareType === "spotify" && selectedSpotifySong && (
+              <View style={styles.thumbnailContainer}>
+                {selectedSpotifySong.albumArt ? (
+                  <Image
+                    source={{ uri: selectedSpotifySong.albumArt }}
+                    style={styles.thumbnail}
+                  />
+                ) : (
+                  <View style={[styles.thumbnail, styles.spotifyAlbumArtPlaceholder]}>
+                    <Music size={48} color={Colors.primary[500]} />
+                  </View>
+                )}
                 <TouchableOpacity
                   style={styles.pencilButton}
                   activeOpacity={0.7}
@@ -981,6 +1246,143 @@ export default function CompleteDare() {
                 </View>
               </View>
             )}
+
+            {/* Spotify Dare Flow */}
+            {dareType === "spotify" && (
+              <View style={styles.spotifyContainer}>
+                {selectedSpotifySong ? (
+                  <View style={styles.spotifySelectedContainer}>
+                    <Text style={styles.spotifySectionLabel}>Selected Song:</Text>
+                    <View style={styles.spotifySelectedCard}>
+                      {selectedSpotifySong.albumArt ? (
+                        <Image
+                          source={{ uri: selectedSpotifySong.albumArt }}
+                          style={styles.spotifyAlbumArt}
+                        />
+                      ) : (
+                        <View style={[styles.spotifyAlbumArt, styles.spotifyAlbumArtPlaceholder]}>
+                          <Music size={40} color={Colors.gray[400]} />
+                        </View>
+                      )}
+                      <View style={styles.spotifySongInfo}>
+                        <Text style={styles.spotifySongName} numberOfLines={2}>
+                          {selectedSpotifySong.name}
+                        </Text>
+                        <Text style={styles.spotifyArtistName} numberOfLines={1}>
+                          {selectedSpotifySong.artist}
+                        </Text>
+                        <Text style={styles.spotifyAlbumName} numberOfLines={1}>
+                          {selectedSpotifySong.album}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.spotifyReflectionLabel}>
+                      Why did you choose this song? (Optional)
+                    </Text>
+                    <TextInput
+                      style={styles.spotifyReflectionInput}
+                      multiline
+                      placeholder="Share your thoughts about this song..."
+                      placeholderTextColor={Colors.gray[400]}
+                      value={spotifyReflection}
+                      onChangeText={setSpotifyReflection}
+                      textAlignVertical="top"
+                    />
+
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={handleComplete}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonText}>Complete</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.retakeButton}
+                        onPress={() => {
+                          setSelectedSpotifySong(null);
+                          setSpotifyReflection("");
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.buttonTextDark}>Choose Different Song</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.spotifySearchContainer}>
+                    <Text style={styles.spotifySectionLabel}>Search for a song:</Text>
+                    <TextInput
+                      style={styles.spotifySearchInput}
+                      placeholder="Search songs, artists, albums..."
+                      placeholderTextColor={Colors.gray[400]}
+                      value={spotifySearchQuery}
+                      onChangeText={setSpotifySearchQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+
+                    {isSearchingSpotify && (
+                      <View style={styles.spotifyLoadingContainer}>
+                        <Text style={styles.spotifyLoadingText}>Searching...</Text>
+                      </View>
+                    )}
+
+                    {!isSearchingSpotify && spotifySearchResults.length > 0 && (
+                      <ScrollView
+                        style={styles.spotifyResultsList}
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {spotifySearchResults.map((song) => (
+                          <TouchableOpacity
+                            key={song.id}
+                            style={styles.spotifyResultItem}
+                            onPress={() => setSelectedSpotifySong(song)}
+                            activeOpacity={0.7}
+                          >
+                            {song.albumArt ? (
+                              <Image
+                                source={{ uri: song.albumArt }}
+                                style={styles.spotifyResultAlbumArt}
+                              />
+                            ) : (
+                              <View style={[styles.spotifyResultAlbumArt, styles.spotifyAlbumArtPlaceholder]}>
+                                <Music size={24} color={Colors.gray[400]} />
+                              </View>
+                            )}
+                            <View style={styles.spotifyResultInfo}>
+                              <Text style={styles.spotifyResultSongName} numberOfLines={1}>
+                                {song.name}
+                              </Text>
+                              <Text style={styles.spotifyResultArtist} numberOfLines={1}>
+                                {song.artist}
+                              </Text>
+                            </View>
+                            <Ionicons
+                              name="chevron-forward"
+                              size={20}
+                              color={Colors.gray[400]}
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    )}
+
+                    {!isSearchingSpotify &&
+                      spotifySearchQuery.trim() &&
+                      spotifySearchResults.length === 0 && (
+                        <View style={styles.spotifyNoResults}>
+                          <Text style={styles.spotifyNoResultsText}>
+                            No songs found. Try a different search.
+                          </Text>
+                        </View>
+                      )}
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -995,7 +1397,9 @@ export default function CompleteDare() {
               ? "Uploading image..."
               : dareType === "drawing"
                 ? "Saving drawing..."
-                : "Completing dare..."
+                : dareType === "spotify"
+                  ? "Saving your song..."
+                  : "Completing dare..."
         }
       />
 
@@ -1428,5 +1832,156 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 20,
     marginTop: 10, // Reduced from 20 to decrease space above drawing container (Undo/Clear buttons)
+  },
+  // Spotify styles
+  spotifyContainer: {
+    width: "100%",
+    gap: 20,
+    marginTop: 20,
+  },
+  spotifySectionLabel: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    marginBottom: 12,
+  },
+  spotifySearchContainer: {
+    width: "100%",
+    gap: 16,
+  },
+  spotifySearchInput: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    padding: 16,
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    ...Shadows.medium,
+  },
+  spotifyLoadingContainer: {
+    padding: 20,
+    alignItems: "center",
+  },
+  spotifyLoadingText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[500],
+  },
+  spotifyResultsList: {
+    maxHeight: 400,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    ...Shadows.medium,
+  },
+  spotifyResultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+    gap: 12,
+  },
+  spotifyResultAlbumArt: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray[100],
+  },
+  spotifyResultInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  spotifyResultSongName: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.text.dark,
+  },
+  spotifyResultArtist: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[500],
+  },
+  spotifyNoResults: {
+    padding: 20,
+    alignItems: "center",
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.gray[300],
+    borderStyle: "dashed",
+  },
+  spotifyNoResultsText: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[500],
+    textAlign: "center",
+  },
+  spotifySelectedContainer: {
+    width: "100%",
+    gap: 16,
+  },
+  spotifySelectedCard: {
+    flexDirection: "row",
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    padding: 16,
+    gap: 16,
+    ...Shadows.medium,
+  },
+  spotifyAlbumArt: {
+    width: 100,
+    height: 100,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray[100],
+  },
+  spotifyAlbumArtPlaceholder: {
+    backgroundColor: Colors.gray[100],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  spotifySongInfo: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 6,
+  },
+  spotifySongName: {
+    fontSize: 20,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.text.dark,
+  },
+  spotifyArtistName: {
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.primary[500],
+  },
+  spotifyAlbumName: {
+    fontSize: 14,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.gray[500],
+  },
+  spotifyReflectionLabel: {
+    fontSize: 18,
+    fontFamily: Fonts.secondary.semiBold,
+    color: Colors.primary[500],
+    marginTop: 8,
+  },
+  spotifyReflectionInput: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary[500],
+    padding: 16,
+    fontSize: 16,
+    fontFamily: Fonts.secondary.regular,
+    color: Colors.text.dark,
+    minHeight: 100,
+    textAlignVertical: "top",
+    ...Shadows.medium,
   },
 });
