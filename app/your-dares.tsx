@@ -19,6 +19,7 @@ import {
   getDareByText,
 } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
+import { parseSpotifySong } from "@/lib/spotify";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -204,6 +205,23 @@ export default function YourDares() {
         {/* index 0 = newest (top of page), higher index = older (bottom) */}
         {completedDaresList.map((dare, index) => {
           const position = getBinPosition(index, completedDaresList.length);
+          
+          // Check if reflectionText contains Spotify song data and extract album art
+          let spotifyAlbumArt: string | null = null;
+          let isSpotifySong = false;
+          if (dare.reflectionText && !dare.image) {
+            const songData = dare.reflectionText.includes("|REFLECTION|")
+              ? dare.reflectionText.split("|REFLECTION|")[0]
+              : dare.reflectionText;
+            const spotifySong = parseSpotifySong(songData);
+            if (spotifySong) {
+              isSpotifySong = true;
+              if (spotifySong.albumArt) {
+                spotifyAlbumArt = spotifySong.albumArt;
+              }
+            }
+          }
+          
           return (
             <TouchableOpacity
               key={dare.id}
@@ -227,6 +245,11 @@ export default function YourDares() {
                       source={{ uri: dare.image }}
                       style={styles.dareImage}
                     />
+                  ) : spotifyAlbumArt ? (
+                    <Image
+                      source={{ uri: spotifyAlbumArt }}
+                      style={styles.dareImage}
+                    />
                   ) : dare.videoUri && getVideoDareIcon(dare.id) ? (
                     <Image
                       source={getVideoDareIcon(dare.id)!}
@@ -247,6 +270,8 @@ export default function YourDares() {
                       <Text style={styles.placeholderEmoji}>
                         {dare.videoUri
                           ? "🎥"
+                          : isSpotifySong
+                          ? "🎵"
                           : dare.reflectionText
                           ? "💬"
                           : "📸"}
