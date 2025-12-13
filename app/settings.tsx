@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors, Fonts, responsiveFontSize, responsiveSpacing } from "@/constants/theme";
 import { LogOut, User, Mail, ChevronLeft } from "lucide-react-native";
 
 export default function Settings() {
@@ -88,39 +88,39 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: responsiveSpacing(20),
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    marginBottom: 20,
+    paddingVertical: responsiveSpacing(16),
+    marginBottom: responsiveSpacing(20),
   },
   backButton: {
-    padding: 4,
+    padding: responsiveSpacing(4),
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.primary[500],
   },
   placeholder: {
-    width: 36,
+    width: responsiveSpacing(36),
   },
   section: {
-    marginBottom: 32,
+    marginBottom: responsiveSpacing(32),
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.primary[500],
-    marginBottom: 12,
+    marginBottom: responsiveSpacing(12),
   },
   infoCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 20,
+    padding: responsiveSpacing(20),
     shadowColor: Colors.gray[900],
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -130,27 +130,27 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: responsiveSpacing(8),
   },
   infoContent: {
-    marginLeft: 16,
+    marginLeft: responsiveSpacing(16),
     flex: 1,
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[500],
-    marginBottom: 4,
+    marginBottom: responsiveSpacing(4),
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.primary[500],
   },
   divider: {
     height: 1,
     backgroundColor: Colors.gray[200],
-    marginVertical: 12,
+    marginVertical: responsiveSpacing(12),
   },
   signOutButton: {
     flexDirection: "row",
@@ -165,21 +165,21 @@ const styles = StyleSheet.create({
     borderWidth: 0.1,
     borderColor: Colors.accent.orangeRed,
     elevation: 2,
-    paddingVertical: 16,
-    marginTop: 20,
+    paddingVertical: responsiveSpacing(16),
+    marginTop: responsiveSpacing(20),
   },
   signOutText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.accent.orangeRed,
-    marginLeft: 8,
+    marginLeft: responsiveSpacing(8),
   },
   versionText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[400],
     textAlign: "center",
     marginTop: "auto",
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
   },
 });

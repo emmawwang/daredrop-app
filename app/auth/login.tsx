@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
-import { Colors, Fonts } from "@/constants/theme";
+import { Colors, Fonts, responsiveFontSize, responsiveSpacing } from "@/constants/theme";
 
 export default function Login() {
   const router = useRouter();
@@ -129,51 +129,51 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: responsiveSpacing(24),
+    paddingTop: responsiveSpacing(60),
+    paddingBottom: responsiveSpacing(20),
   },
   title: {
-    fontSize: 48,
+    fontSize: responsiveFontSize(48),
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
-    marginBottom: 8,
+    marginBottom: responsiveSpacing(8),
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[600],
-    marginBottom: 48,
+    marginBottom: responsiveSpacing(48),
   },
   formContainer: {
     width: "100%",
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
   },
   label: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.medium,
     color: Colors.gray[700],
-    marginBottom: 8,
+    marginBottom: responsiveSpacing(8),
   },
   input: {
     backgroundColor: Colors.white,
     borderWidth: 2,
     borderColor: Colors.gray[300],
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    paddingHorizontal: responsiveSpacing(16),
+    paddingVertical: responsiveSpacing(14),
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[900],
   },
   loginButton: {
     backgroundColor: Colors.primary[500],
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: responsiveSpacing(16),
     alignItems: "center",
-    marginTop: 8,
+    marginTop: responsiveSpacing(8),
     shadowColor: Colors.primary[500],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -186,21 +186,21 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: Colors.white,
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.semiBold,
   },
   signUpContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 24,
+    marginTop: responsiveSpacing(24),
   },
   signUpText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[600],
   },
   signUpLink: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.primary[500],
   },

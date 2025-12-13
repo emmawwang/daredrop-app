@@ -12,7 +12,18 @@ import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import TopRightButton from "@/components/TopRightButton";
-import { Colors, Fonts, Shadows } from "@/constants/theme";
+import {
+  Colors,
+  Fonts,
+  Shadows,
+  responsiveFontSize,
+  responsiveSpacing,
+  moderateScale,
+  wp,
+  hp,
+  SCREEN_WIDTH,
+  SCREEN_HEIGHT,
+} from "@/constants/theme";
 import {
   getTextDareIcon,
   getVideoDareIcon,
@@ -21,13 +32,11 @@ import {
 import { useDare } from "@/contexts/DareContext";
 import { parseSpotifySong } from "@/lib/spotify";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 // Grid layout constants - no overlapping circles
-const CIRCLE_SIZE = 115;
-const ROW_HEIGHT = 130;
-const BOTTOM_PADDING = 50; // Space from bottom of screen
-const TITLE_HEIGHT = 280; // Height of title area to avoid
+const CIRCLE_SIZE = moderateScale(115);
+const ROW_HEIGHT = moderateScale(130);
+const BOTTOM_PADDING = responsiveSpacing(50); // Space from bottom of screen
+const TITLE_HEIGHT = responsiveSpacing(280); // Height of title area to avoid
 const MAX_TOP_POSITION_RATIO = 0.32; // Never place circles above 60% of screen height
 
 // Calculate pyramid row distribution - top rows (newest) taper, bottom rows (oldest) have more
@@ -308,50 +317,50 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: 60,
-    left: 20,
+    top: responsiveSpacing(60),
+    left: responsiveSpacing(20),
     zIndex: 100,
-    width: 40,
-    height: 40,
+    width: responsiveSpacing(40),
+    height: responsiveSpacing(40),
     alignItems: "center",
     justifyContent: "center",
   },
   backIcon: {
-    fontSize: 32,
+    fontSize: responsiveFontSize(32),
     color: Colors.primary[500],
   },
   homeButton: {
     position: "absolute",
-    top: 60,
-    right: 20,
+    top: responsiveSpacing(60),
+    right: responsiveSpacing(20),
     zIndex: 100,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 80,
-    paddingBottom: 100,
+    paddingTop: responsiveSpacing(80),
+    paddingBottom: responsiveSpacing(100),
     position: "relative",
   },
   title: {
-    fontSize: 56,
+    fontSize: responsiveFontSize(56),
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
-    lineHeight: 60,
-    paddingLeft: 40,
-    paddingTop: 20,
-    marginBottom: 20,
+    lineHeight: responsiveFontSize(60),
+    paddingLeft: responsiveSpacing(40),
+    paddingTop: responsiveSpacing(20),
+    marginBottom: responsiveSpacing(20),
   },
   emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 100,
-    paddingHorizontal: 40,
+    paddingVertical: responsiveSpacing(100),
+    paddingHorizontal: responsiveSpacing(40),
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     fontFamily: Fonts.secondary.regular,
     color: Colors.secondary[500],
     textAlign: "center",
@@ -388,6 +397,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   placeholderEmoji: {
-    fontSize: 40,
+    fontSize: responsiveFontSize(40),
   },
 });

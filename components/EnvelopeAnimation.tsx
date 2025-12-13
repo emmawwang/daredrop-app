@@ -9,7 +9,16 @@ import {
   Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors, Shadows, BorderRadius, Fonts } from "@/constants/theme";
+import {
+  Colors,
+  Shadows,
+  BorderRadius,
+  Fonts,
+  responsiveFontSize,
+  responsiveSpacing,
+  moderateScale,
+  wp,
+} from "@/constants/theme";
 import { useDare } from "@/contexts/DareContext";
 import { RefreshCw } from "lucide-react-native";
 import Svg, { Polygon } from "react-native-svg";
@@ -21,10 +30,10 @@ interface EnvelopeAnimationProps {
 }
 
 const { width } = Dimensions.get("window");
-const ENVELOPE_WIDTH = width * 0.85;
-const ENVELOPE_HEIGHT = 240;
-const CARD_WIDTH = ENVELOPE_WIDTH - 30;
-const CARD_HEIGHT = 200;
+const ENVELOPE_WIDTH = wp(85);
+const ENVELOPE_HEIGHT = moderateScale(240);
+const CARD_WIDTH = ENVELOPE_WIDTH - responsiveSpacing(30);
+const CARD_HEIGHT = moderateScale(200);
 
 export default function EnvelopeAnimation({
   dare,
@@ -294,13 +303,13 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 10,
+    marginVertical: responsiveSpacing(10),
     marginBottom: 1,
   },
   envelopeWrapper: {
     position: "relative",
     width: ENVELOPE_WIDTH,
-    height: ENVELOPE_HEIGHT + 180,
+    height: ENVELOPE_HEIGHT + moderateScale(180),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -344,8 +353,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
     alignItems: "center",
     justifyContent: "center",
-    width: 150,
-    height: 150,
+    width: moderateScale(150),
+    height: moderateScale(150),
   },
   sealImage: {
     width: "100%",
@@ -361,51 +370,51 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
     borderColor: Colors.primary[500],
-    padding: 24,
+    padding: responsiveSpacing(24),
     justifyContent: "center",
     alignItems: "center",
     zIndex: 4,
     ...Shadows.large,
   },
   dareText: {
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     fontFamily: Fonts.secondary.regular,
     color: Colors.primary[500],
     textAlign: "center",
-    lineHeight: 28,
+    lineHeight: responsiveFontSize(28),
   },
   completedBadge: {
-    marginTop: 12,
+    marginTop: responsiveSpacing(12),
     alignSelf: "flex-end",
   },
   completedBadgeText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontFamily: Fonts.secondary.medium,
     color: Colors.secondary[500],
     fontStyle: "italic",
   },
   inProgressBadge: {
-    marginTop: 12,
+    marginTop: responsiveSpacing(12),
     alignSelf: "flex-end",
     backgroundColor: Colors.accent.yellow,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: responsiveSpacing(12),
+    paddingVertical: responsiveSpacing(4),
+    borderRadius: BorderRadius.md,
   },
   inProgressBadgeText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontFamily: Fonts.secondary.medium,
     color: Colors.primary[500],
   },
   buttonContainer: {
-    marginTop: 16,
+    marginTop: responsiveSpacing(16),
     alignItems: "center",
-    gap: 10,
+    gap: responsiveSpacing(10),
   },
   completeButton: {
     backgroundColor: Colors.primary[500],
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: responsiveSpacing(12),
+    paddingHorizontal: responsiveSpacing(24),
     borderRadius: BorderRadius.md,
     alignSelf: "center",
     ...Shadows.medium,
@@ -414,7 +423,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary[500],
   },
   completeButtonText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.white,
   },
@@ -424,12 +433,12 @@ const styles = StyleSheet.create({
   newDareButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    gap: responsiveSpacing(6),
+    paddingVertical: responsiveSpacing(8),
+    paddingHorizontal: responsiveSpacing(16),
   },
   newDareButtonText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize(14),
     fontFamily: Fonts.secondary.medium,
     color: Colors.secondary[500],
   },

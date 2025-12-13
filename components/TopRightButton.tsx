@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { Colors, Shadows } from "@/constants/theme";
+import { Colors, Shadows, moderateScale } from "@/constants/theme";
 
 interface TopRightButtonProps {
   onPress: () => void;
@@ -22,9 +22,9 @@ export default function TopRightButton({ onPress, children, style }: TopRightBut
 
 const styles = StyleSheet.create({
   button: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(18),
     backgroundColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",

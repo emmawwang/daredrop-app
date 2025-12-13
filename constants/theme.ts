@@ -1,6 +1,23 @@
 // DareDrop Theme Constants
 // Based on Figma design
 
+import {
+  scaleWidth,
+  scaleHeight,
+  moderateScale,
+  responsiveFontSize,
+  responsiveSpacing,
+  isSmallDevice,
+  isLargeDevice,
+  isTablet,
+  getResponsiveValue,
+  getPlatformValue,
+  wp,
+  hp,
+  SCREEN_WIDTH,
+  SCREEN_HEIGHT,
+} from "./responsive";
+
 export const Colors = {
   // Background colors
   background: "#F3EAE3", // Cream/beige background
@@ -155,4 +172,22 @@ export const Shadows = {
     shadowRadius: 16,
     elevation: 8,
   },
+};
+
+// Export responsive utilities
+export {
+  scaleWidth,
+  scaleHeight,
+  moderateScale,
+  responsiveFontSize,
+  responsiveSpacing,
+  isSmallDevice,
+  isLargeDevice,
+  isTablet,
+  getResponsiveValue,
+  getPlatformValue,
+  wp,
+  hp,
+  SCREEN_WIDTH,
+  SCREEN_HEIGHT,
 };
