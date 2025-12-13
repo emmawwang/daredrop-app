@@ -16,14 +16,20 @@ export const textDareIcons: Record<string, ImageSourcePropType> = {
   "Write a letter to your future self 5 years from now": require("@/assets/dare-letter.png.jpg"),
   "Create a playlist of 5 songs that tell a story": require("@/assets/dare-playlist.jpg"),
   "Write a 50-word story that ends with the word 'finally'": require("@/assets/dare-story.jpg"),
-  "Compose a haiku to James Landay": require("@/assets/dare-haiku.png.jpg"),
+  "Compose a haiku to a long-distance friend": require("@/assets/dare-haiku.png.jpg"),
   "Write a goal for your future self in 5 years": require("@/assets/dare-goal.jpg"),
-  "What advice would you give to a future CS147 student?": require("@/assets/dare-advice.jpg"),
+  "What advice would you give to your future self?": require("@/assets/dare-advice.jpg"),
+  "Write a poem about a random person you saw today": require("@/assets/dare-haiku.png.jpg"),
+  "Write a 6-word story": require("@/assets/dare-story.jpg"),
+  "List 3 things you're grateful for today": require("@/assets/dare-compliment..jpg"),
+  "Create a new word and define it": require("@/assets/dare-joke.jpeg"),
+  "Describe your perfect day in 3 sentences": require("@/assets/dare-goal.jpg"),
+  "Write a message to your past self from one year ago": require("@/assets/dare-letter.png.jpg"),
 };
 
 // Icon mapping for video dares (React Native requires static requires)
 export const videoDareIcons: Record<string, ImageSourcePropType> = {
-  "Tell James Landay a joke!": require("@/assets/dare-joke.jpeg"),
+  "Record yourself telling someone a joke!": require("@/assets/dare-joke.jpeg"),
 };
 
 // Sample dares - these will later be fetched from an API or database
@@ -57,71 +63,178 @@ export const sampleDares: Dare[] = [
   },
   {
     id: "6",
-    text: "What advice would you give to a future CS147 student?",
+    text: "What advice would you give to your future self?",
     type: "text",
     placeholder: "Share your advice and what you've learned...",
   },
   {
     id: "7",
-    text: "Take a selfie with your CA!",
-    type: "photo",
-  },
-  {
-    id: "8",
     text: "Write a 50-word story that ends with the word 'finally'",
     type: "text",
     placeholder: "Once upon a time...",
   },
   {
-    id: "9",
-    text: "Record yourself telling James a funny joke!",
+    id: "8",
+    text: "Record yourself telling someone a joke!",
     type: "video",
   },
   {
-    id: "10",
-    text: "Compose a haiku to James Landay",
+    id: "9",
+    text: "Compose a haiku to a long-distance friend",
     type: "text",
     placeholder: "5 syllables, 7 syllables, 5 syllables...",
   },
   {
-    id: "11",
-    text: "Tell James Landay a joke!",
-    type: "video",
-  },
-  {
-    id: "12",
+    id: "10",
     text: "Create a playlist of 5 songs that tell a story",
     type: "text",
     placeholder: "What's the story? What are the songs?",
   },
   {
-    id: "13",
+    id: "11",
     text: "Find an old photo of people you love",
     type: "photo",
   },
   {
-    id: "14",
+    id: "12",
     text: "Find a song that reminds you of yourself five years ago",
     type: "spotify",
   },
   {
-    id: "15",
+    id: "13",
     text: "Find a song that describes your current mood",
     type: "spotify",
   },
   {
-    id: "16",
+    id: "14",
     text: "Find a song that makes you feel nostalgic",
     type: "spotify",
   },
   {
-    id: "17",
+    id: "15",
     text: "Find a song that represents your biggest dream",
     type: "spotify",
   },
   {
-    id: "18",
+    id: "16",
     text: "Find a song that reminds you of someone special",
+    type: "spotify",
+  },
+  {
+    id: "17",
+    text: "Write a poem about a random person you saw today",
+    type: "text",
+    placeholder:
+      "What did they look like? What did they do? What did you think?",
+  },
+  {
+    id: "18",
+    text: "Take a photo from an unusual angle",
+    type: "photo",
+  },
+  {
+    id: "19",
+    text: "List 3 things you're grateful for today",
+    type: "text",
+    placeholder: "1. ... 2. ... 3. ...",
+  },
+  {
+    id: "20",
+    text: "Draw your current mood using only shapes",
+    type: "drawing",
+  },
+  {
+    id: "21",
+    text: "Capture a reflection in a photo",
+    type: "photo",
+  },
+  {
+    id: "22",
+    text: "Find a song that makes you want to dance",
+    type: "spotify",
+  },
+  {
+    id: "23",
+    text: "Share one thing that made you laugh today",
+    type: "video",
+  },
+  {
+    id: "24",
+    text: "Doodle what you hear right now",
+    type: "drawing",
+  },
+  {
+    id: "25",
+    text: "Take a photo of something that makes you smile",
+    type: "photo",
+  },
+  {
+    id: "26",
+    text: "Write a 6-word story",
+    type: "text",
+    placeholder: "Six words that tell a complete story...",
+  },
+  {
+    id: "27",
+    text: "Find a song in a language you don't speak",
+    type: "spotify",
+  },
+  {
+    id: "28",
+    text: "Describe your perfect day in 3 sentences",
+    type: "text",
+    placeholder: "What would make today perfect?",
+  },
+  {
+    id: "29",
+    text: "Draw your day as a 3-panel comic strip",
+    type: "drawing",
+  },
+  {
+    id: "30",
+    text: "Find your favorite color in nature and photograph it",
+    type: "photo",
+  },
+  {
+    id: "31",
+    text: "Give a 30-second tour of your favorite space",
+    type: "video",
+  },
+  {
+    id: "32",
+    text: "Find a song that gives you energy",
+    type: "spotify",
+  },
+  {
+    id: "33",
+    text: "Create a new word and define it",
+    type: "text",
+    placeholder: "Your new word: ... Definition: ...",
+  },
+  {
+    id: "34",
+    text: "Capture a photo of an interesting shadow",
+    type: "photo",
+  },
+  {
+    id: "35",
+    text: "Sketch your dream vacation spot",
+    type: "drawing",
+  },
+  {
+    id: "36",
+    text: "Write a message to your past self from one year ago",
+    type: "text",
+    placeholder: "Dear past me, ...",
+  },
+  {
+    id: "37",
+    text: "Teach someone something new in under a minute",
+    type: "video",
+  },
+  {
+    id: "38",
+    text: "Find a song that helps you focus",
     type: "spotify",
   },
 ];

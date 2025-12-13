@@ -27,7 +27,17 @@ import {
 } from "lucide-react-native";
 import TopRightButton from "@/components/TopRightButton";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import { Colors, Fonts, BorderRadius, Shadows } from "@/constants/theme";
+import {
+  Colors,
+  Fonts,
+  BorderRadius,
+  Shadows,
+  responsiveFontSize,
+  responsiveSpacing,
+  hp,
+  scaleHeight,
+  moderateScale,
+} from "@/constants/theme";
 import { getDareByText } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import {
@@ -42,8 +52,14 @@ export default function DareDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const dareText = params.dare as string;
-  const { getDareImage, getDareVideo, getDareReflection, getDareDate, deleteDare, loadDares } =
-    useDare();
+  const {
+    getDareImage,
+    getDareVideo,
+    getDareReflection,
+    getDareDate,
+    deleteDare,
+    loadDares,
+  } = useDare();
 
   // Get dare type
   const dareInfo = getDareByText(dareText);
@@ -118,7 +134,7 @@ export default function DareDetail() {
       if (videoPath.startsWith("dare-videos/")) {
         const path = videoPath.replace("dare-videos/", "");
         console.log("Creating signed URL for path:", path);
-        
+
         try {
           const { data, error } = await supabase.storage
             .from("dare-videos")
@@ -175,13 +191,13 @@ export default function DareDetail() {
 
         if (song) {
           message += `\n\n`;
-          
+
           // Add song info
           message += `"${song.name}" by ${song.artist}\n\n`;
-          
+
           // Add Spotify link
           message += `${song.spotifyUrl}\n\n`;
-          
+
           // Add user reflection if present
           if (userReflection) {
             message += `Reflection:\n"${userReflection}"\n\n`;
@@ -214,7 +230,10 @@ export default function DareDetail() {
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           // For local files, share directly
-          if (shareUrl.startsWith("file://") || shareUrl.startsWith("content://")) {
+          if (
+            shareUrl.startsWith("file://") ||
+            shareUrl.startsWith("content://")
+          ) {
             const mimeType = videoUri ? "video/mp4" : "image/png";
             await Sharing.shareAsync(shareUrl, {
               mimeType: mimeType,
@@ -238,11 +257,11 @@ export default function DareDetail() {
 
       // Build payload for standard Share API
       const sharePayload: any = { message };
-  
+
       if (shareUrl) {
         sharePayload.url = shareUrl; // Works on both platforms
       }
-  
+
       await Share.share(sharePayload, {
         dialogTitle: "Share your dare!",
       });
@@ -251,7 +270,6 @@ export default function DareDetail() {
       console.error(error);
     }
   };
-  
 
   const handleEditDare = () => {
     setShowEditModal(false);
@@ -369,7 +387,10 @@ export default function DareDetail() {
                     source={{ uri: imageUri }}
                     style={styles.dareImage}
                     onLoadStart={() => {
-                      if (imageUri?.startsWith("http://") || imageUri?.startsWith("https://")) {
+                      if (
+                        imageUri?.startsWith("http://") ||
+                        imageUri?.startsWith("https://")
+                      ) {
                         setIsLoadingMedia(true);
                       }
                     }}
@@ -447,7 +468,10 @@ export default function DareDetail() {
                   source={{ uri: imageUri }}
                   style={styles.dareImage}
                   onLoadStart={() => {
-                    if (imageUri?.startsWith("http://") || imageUri?.startsWith("https://")) {
+                    if (
+                      imageUri?.startsWith("http://") ||
+                      imageUri?.startsWith("https://")
+                    ) {
                       setIsLoadingMedia(true);
                     }
                   }}
@@ -493,7 +517,7 @@ export default function DareDetail() {
                 ? reflectionText.split("|REFLECTION|")[1]
                 : null;
               const song = parseSpotifySong(songData);
-              
+
               return song ? (
                 <View style={styles.spotifyContainer}>
                   <Text style={styles.sectionLabel}>Your Song</Text>
@@ -504,19 +528,30 @@ export default function DareDetail() {
                         style={styles.spotifyAlbumArtLarge}
                       />
                     ) : (
-                      <View style={[styles.spotifyAlbumArtLarge, styles.spotifyAlbumArtPlaceholder]}>
+                      <View
+                        style={[
+                          styles.spotifyAlbumArtLarge,
+                          styles.spotifyAlbumArtPlaceholder,
+                        ]}
+                      >
                         <Music size={64} color={Colors.primary[500]} />
                       </View>
                     )}
                     <Text style={styles.spotifySongNameLarge}>{song.name}</Text>
-                    <Text style={styles.spotifyArtistNameLarge}>{song.artist}</Text>
-                    <Text style={styles.spotifyAlbumNameLarge}>{song.album}</Text>
-                    
+                    <Text style={styles.spotifyArtistNameLarge}>
+                      {song.artist}
+                    </Text>
+                    <Text style={styles.spotifyAlbumNameLarge}>
+                      {song.album}
+                    </Text>
+
                     <TouchableOpacity
                       style={styles.spotifyButton}
                       onPress={async () => {
                         try {
-                          const canOpen = await Linking.canOpenURL(song.spotifyUrl);
+                          const canOpen = await Linking.canOpenURL(
+                            song.spotifyUrl
+                          );
                           if (canOpen) {
                             await Linking.openURL(song.spotifyUrl);
                           } else {
@@ -528,14 +563,24 @@ export default function DareDetail() {
                       }}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="musical-notes" size={20} color={Colors.white} />
-                      <Text style={styles.spotifyButtonText}>Open in Spotify</Text>
+                      <Ionicons
+                        name="musical-notes"
+                        size={20}
+                        color={Colors.white}
+                      />
+                      <Text style={styles.spotifyButtonText}>
+                        Open in Spotify
+                      </Text>
                     </TouchableOpacity>
 
                     {userReflection && (
                       <View style={styles.spotifyReflectionContainer}>
-                        <Text style={styles.spotifyReflectionLabel}>Your Reflection:</Text>
-                        <Text style={styles.spotifyReflectionText}>{userReflection}</Text>
+                        <Text style={styles.spotifyReflectionLabel}>
+                          Your Reflection:
+                        </Text>
+                        <Text style={styles.spotifyReflectionText}>
+                          {userReflection}
+                        </Text>
                       </View>
                     )}
 
@@ -554,7 +599,12 @@ export default function DareDetail() {
             <View style={styles.noContentContainer}>
               <Text style={styles.noContentEmoji}>
                 {(() => {
-                  const type = dareType as "photo" | "video" | "drawing" | "text" | "spotify";
+                  const type = dareType as
+                    | "photo"
+                    | "video"
+                    | "drawing"
+                    | "text"
+                    | "spotify";
                   if (type === "photo") return "📸";
                   if (type === "video") return "🎥";
                   if (type === "drawing") return "🎨";
@@ -564,11 +614,18 @@ export default function DareDetail() {
               </Text>
               <Text style={styles.noContentText}>
                 {(() => {
-                  const type = dareType as "photo" | "video" | "drawing" | "text" | "spotify";
+                  const type = dareType as
+                    | "photo"
+                    | "video"
+                    | "drawing"
+                    | "text"
+                    | "spotify";
                   if (type === "photo") return "No photo added for this dare";
                   if (type === "video") return "No video added for this dare";
-                  if (type === "drawing") return "No drawing added for this dare";
-                  if (type === "spotify") return "No song selected for this dare";
+                  if (type === "drawing")
+                    return "No drawing added for this dare";
+                  if (type === "spotify")
+                    return "No song selected for this dare";
                   return "No reflection added for this dare";
                 })()}
               </Text>
@@ -602,8 +659,8 @@ export default function DareDetail() {
           dareType === "video"
             ? "Loading video..."
             : dareType === "photo" || dareType === "drawing"
-              ? "Loading image..."
-              : undefined
+            ? "Loading image..."
+            : undefined
         }
       />
 
@@ -701,26 +758,26 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: responsiveSpacing(40),
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: responsiveSpacing(20),
     paddingTop: 0,
   },
   closeButton: {
     alignSelf: "flex-end",
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    marginBottom: 16,
+    gap: responsiveSpacing(12),
+    marginBottom: responsiveSpacing(16),
   },
   headerTitle: {
-    fontSize: 42,
+    fontSize: responsiveFontSize(42),
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
   },
@@ -728,42 +785,42 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: responsiveSpacing(8),
     backgroundColor: Colors.white,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: responsiveSpacing(10),
+    paddingHorizontal: responsiveSpacing(20),
     borderRadius: BorderRadius.lg,
     alignSelf: "center",
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
   },
   dateText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.medium,
     color: Colors.primary[500],
   },
   dareCard: {
     backgroundColor: Colors.accent.yellow,
     borderRadius: BorderRadius.xl,
-    padding: 28,
-    marginBottom: 32,
+    padding: responsiveSpacing(28),
+    marginBottom: responsiveSpacing(32),
     borderWidth: 2,
     borderColor: Colors.primary[500],
   },
   dareText: {
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
     textAlign: "center",
-    lineHeight: 32,
+    lineHeight: responsiveFontSize(32),
   },
   imageContainer: {
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
   },
   sectionLabel: {
-    fontSize: 30,
+    fontSize: responsiveFontSize(30),
     fontFamily: Fonts.primary.regular,
     color: Colors.secondary[500],
-    marginBottom: 12,
+    marginBottom: responsiveSpacing(12),
     textAlign: "center",
   },
   imageWrapper: {
@@ -771,21 +828,21 @@ const styles = StyleSheet.create({
   },
   dareImage: {
     width: "100%",
-    height: 350,
+    height: scaleHeight(350),
     borderRadius: BorderRadius.xl,
     borderWidth: 2,
     borderColor: Colors.primary[500],
     ...Shadows.large,
   },
   videoContainer: {
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
   },
   videoWrapper: {
     position: "relative",
   },
   dareVideo: {
     width: "100%",
-    height: 350,
+    height: scaleHeight(350),
     borderRadius: BorderRadius.xl,
     borderWidth: 3,
     borderColor: Colors.primary[500],
@@ -804,22 +861,22 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
   },
   videoLoadingLogo: {
-    width: 150,
-    height: 150,
+    width: moderateScale(150),
+    height: moderateScale(150),
     opacity: 0.8,
   },
   errorContainer: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    padding: 24,
+    padding: responsiveSpacing(24),
     borderWidth: 3,
     borderColor: Colors.secondary[500],
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 200,
+    minHeight: scaleHeight(200),
   },
   errorText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.secondary[500],
     textAlign: "center",
@@ -842,11 +899,11 @@ const styles = StyleSheet.create({
   },
   pencilButton: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    bottom: responsiveSpacing(16),
+    right: responsiveSpacing(16),
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(22),
     backgroundColor: Colors.accent.yellow,
     alignItems: "center",
     justifyContent: "center",
@@ -856,35 +913,35 @@ const styles = StyleSheet.create({
   },
   // Reflection styles
   reflectionContainer: {
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
   },
   reflectionWrapper: {
     position: "relative",
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    padding: 24,
+    padding: responsiveSpacing(24),
     borderWidth: 2,
     borderColor: Colors.primary[500],
     ...Shadows.small,
   },
   reflectionHeader: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: responsiveSpacing(16),
   },
   reflectionText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.regular,
     color: Colors.text.dark,
-    lineHeight: 28,
+    lineHeight: responsiveFontSize(28),
     fontStyle: "italic",
   },
   pencilButtonReflection: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    top: responsiveSpacing(16),
+    right: responsiveSpacing(16),
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(22),
     backgroundColor: Colors.accent.yellow,
     alignItems: "center",
     justifyContent: "center",
@@ -895,19 +952,19 @@ const styles = StyleSheet.create({
   noContentContainer: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    padding: 40,
-    marginBottom: 24,
+    padding: responsiveSpacing(40),
+    marginBottom: responsiveSpacing(24),
     alignItems: "center",
     borderWidth: 2,
     borderColor: Colors.gray[300],
     borderStyle: "dashed",
   },
   noContentEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: responsiveFontSize(48),
+    marginBottom: responsiveSpacing(12),
   },
   noContentText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[500],
     textAlign: "center",
@@ -917,31 +974,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 32,
+    gap: responsiveSpacing(10),
+    paddingVertical: responsiveSpacing(18),
+    paddingHorizontal: responsiveSpacing(32),
     borderRadius: BorderRadius.xl,
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
     ...Shadows.medium,
   },
   shareButtonText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.white,
   },
   messageCard: {
     backgroundColor: Colors.accent.green,
     borderRadius: BorderRadius.lg,
-    padding: 20,
+    padding: responsiveSpacing(20),
     borderWidth: 2,
     borderColor: Colors.primary[500],
   },
   messageText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[600],
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: responsiveFontSize(24),
   },
   modalOverlay: {
     flex: 1,
@@ -952,17 +1009,17 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.xl,
-    padding: 20,
+    padding: responsiveSpacing(20),
     width: "80%",
-    maxWidth: 300,
+    maxWidth: moderateScale(300),
     ...Shadows.large,
   },
   modalOption: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: responsiveSpacing(16),
+    paddingHorizontal: responsiveSpacing(20),
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.primary[500],
-    marginBottom: 12,
+    marginBottom: responsiveSpacing(12),
     alignItems: "center",
   },
   modalOptionDelete: {
@@ -972,7 +1029,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   modalOptionText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.white,
   },
@@ -989,26 +1046,26 @@ const styles = StyleSheet.create({
     color: Colors.primary[500],
   },
   confirmationTitle: {
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     fontFamily: Fonts.secondary.bold,
     color: Colors.primary[500],
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
   },
   successTitle: {
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     fontFamily: Fonts.secondary.bold,
     color: Colors.primary[500],
     textAlign: "center",
   },
   // Spotify styles
   spotifyContainer: {
-    marginBottom: 24,
+    marginBottom: responsiveSpacing(24),
   },
   spotifyCard: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    padding: 24,
+    padding: responsiveSpacing(24),
     borderWidth: 2,
     borderColor: Colors.primary[500],
     alignItems: "center",
@@ -1016,10 +1073,10 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   spotifyAlbumArtLarge: {
-    width: 200,
-    height: 200,
+    width: moderateScale(200),
+    height: moderateScale(200),
     borderRadius: BorderRadius.lg,
-    marginBottom: 16,
+    marginBottom: responsiveSpacing(16),
     backgroundColor: Colors.gray[100],
   },
   spotifyAlbumArtPlaceholder: {
@@ -1028,70 +1085,70 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   spotifySongNameLarge: {
-    fontSize: 24,
+    fontSize: responsiveFontSize(24),
     fontFamily: Fonts.secondary.bold,
     color: Colors.text.dark,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: responsiveSpacing(8),
   },
   spotifyArtistNameLarge: {
-    fontSize: 20,
+    fontSize: responsiveFontSize(20),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.primary[500],
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: responsiveSpacing(4),
   },
   spotifyAlbumNameLarge: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.gray[500],
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
   },
   spotifyButton: {
     backgroundColor: Colors.secondary[500],
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    gap: responsiveSpacing(8),
+    paddingVertical: responsiveSpacing(14),
+    paddingHorizontal: responsiveSpacing(24),
     borderRadius: BorderRadius.xl,
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
     ...Shadows.medium,
   },
   spotifyButtonText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.white,
   },
   spotifyReflectionContainer: {
     width: "100%",
-    marginTop: 16,
-    paddingTop: 20,
+    marginTop: responsiveSpacing(16),
+    paddingTop: responsiveSpacing(20),
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
   },
   spotifyReflectionLabel: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.primary[500],
-    marginBottom: 8,
+    marginBottom: responsiveSpacing(8),
   },
   spotifyReflectionText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(16),
     fontFamily: Fonts.secondary.regular,
     color: Colors.text.dark,
-    lineHeight: 24,
+    lineHeight: responsiveFontSize(24),
     fontStyle: "italic",
   },
   pencilButtonSpotify: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    top: responsiveSpacing(16),
+    right: responsiveSpacing(16),
+    width: moderateScale(44),
+    height: moderateScale(44),
+    borderRadius: moderateScale(22),
     backgroundColor: Colors.accent.yellow,
     alignItems: "center",
     justifyContent: "center",

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, FontSizes, Fonts } from "@/constants/theme";
+import { Colors, FontSizes, Fonts, responsiveFontSize, moderateScale, responsiveSpacing } from "@/constants/theme";
 
 interface FireBadgeProps {
   days: number;
@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   fireIcon: {
-    width: 90,
-    height: 95,
+    width: moderateScale(90),
+    height: moderateScale(95),
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
@@ -64,22 +64,22 @@ const styles = StyleSheet.create({
   },
   yellowFlame: {
     position: "absolute",
-    top: 22,
-    left: 18,
+    top: moderateScale(22),
+    left: moderateScale(18),
   },
   orangeFlame: {
     position: "absolute",
-    top: 10,
-    left: 10,
+    top: moderateScale(10),
+    left: moderateScale(10),
   },
   numberContainer: {
     position: "absolute",
-    top: 35,
+    top: moderateScale(35),
     alignItems: "center",
     justifyContent: "center",
   },
   daysNumber: {
-    fontSize: 32,
+    fontSize: responsiveFontSize(32),
     fontFamily: Fonts.secondary.semiBold,
     color: Colors.accent.orangeRed,
     fontWeight: "bold",
@@ -88,9 +88,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
   daysText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize(18),
     fontFamily: Fonts.secondary.regular,
     color: Colors.accent.orange,
-    marginTop: -8,
+    marginTop: responsiveSpacing(-8),
   },
 });

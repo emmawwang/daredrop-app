@@ -13,7 +13,13 @@ import EnvelopeAnimation from "@/components/EnvelopeAnimation";
 import FireBadge from "@/components/FireBadge";
 import DareHistory from "@/components/DareHistory";
 import TopRightButton from "@/components/TopRightButton";
-import { Colors, FontSizes, Fonts } from "@/constants/theme";
+import {
+  Colors,
+  FontSizes,
+  Fonts,
+  responsiveFontSize,
+  responsiveSpacing,
+} from "@/constants/theme";
 import { getRandomDare, Dare } from "@/constants/dares";
 import { useDare } from "@/contexts/DareContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -123,12 +129,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: responsiveSpacing(40),
   },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingHorizontal: responsiveSpacing(20),
+    paddingTop: responsiveSpacing(50),
     alignItems: "center",
   },
   header: {
@@ -136,9 +142,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-start",
     alignItems: "flex-start",
-    paddingHorizontal: 8,
-    marginTop: 10,
-    gap: 15,
+    paddingHorizontal: responsiveSpacing(8),
+    marginTop: responsiveSpacing(10),
+    gap: responsiveSpacing(15),
   },
   headerLeft: {
     flex: 0,
@@ -146,31 +152,31 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: "absolute",
-    top: 58,
-    right: 20,
+    top: responsiveSpacing(58),
+    right: responsiveSpacing(20),
     zIndex: 10,
   },
   welcomeText: {
-    fontSize: 40,
+    fontSize: responsiveFontSize(40),
     fontFamily: Fonts.primary.regular,
     color: Colors.primary[500],
-    lineHeight: 44,
-    marginBottom: 20,
+    lineHeight: responsiveFontSize(44),
+    marginBottom: responsiveSpacing(20),
   },
   dareSection: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
   },
   dareSectionTitle: {
-    fontSize: 40,
+    fontSize: responsiveFontSize(40),
     fontFamily: Fonts.primary.regular,
     color: Colors.secondary[500],
-    marginBottom: 20,
+    marginBottom: responsiveSpacing(20),
     alignSelf: "flex-start",
-    paddingLeft: 8,
+    paddingLeft: responsiveSpacing(8),
   },
   dareHistorySection: {
-    marginTop: 10,
+    marginTop: responsiveSpacing(10),
   },
 });
